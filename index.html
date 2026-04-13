@@ -56,7 +56,7 @@
     display: flex; align-items: center; justify-content: space-between;
   }
   .nav-logo {
-    height: 200px; width: auto; display: block;
+    height: 40px; width: auto; display: block;
   }
   .nav-actions { display: flex; gap: 6px; }
   .nav-actions .icon-btn {
@@ -331,7 +331,7 @@
     color: #fff; border: none;
     border-radius: 14px; padding: 0 24px; height: 48px;
     font-family: 'Inter', system-ui, sans-serif; font-size: 15px; font-weight: 600;
-    cursor: pointer; width: 100%; margin-top: 8px;
+    cursor: pointer; width: 100%;
     box-shadow: 0 4px 16px rgba(255,90,42,0.28);
     transition: opacity 0.2s, transform 0.15s; letter-spacing: 0.2px;
     display: flex; align-items: center; justify-content: center;
@@ -405,6 +405,7 @@
     background: var(--accent);
     border-radius: var(--radius); padding: 28px 22px; margin-bottom: 20px;
     text-align: center;
+    background-size: cover; background-position: center; background-repeat: no-repeat;
   }
   .ai-hero-icon { font-size: 44px; margin-bottom: 10px; }
   .ai-hero-title { font-family: 'Inter', system-ui, sans-serif; font-size: 22px; font-weight: 700; margin-bottom: 6px; color: #fff; }
@@ -420,6 +421,19 @@
     background: none; border: none; color: var(--accent); cursor: pointer;
     font-size: 14px; padding: 0; line-height: 1; opacity: 0.7;
   }
+
+  .chatgpt-recipe-item {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px;
+    cursor: pointer; transition: all 0.2s; display: flex; align-items: flex-start; gap: 8px;
+  }
+  .chatgpt-recipe-item:hover { background: var(--accent-dim); border-color: var(--accent); }
+  .chatgpt-recipe-item.selected { background: var(--accent-dim); border: 2px solid var(--accent); }
+  .chatgpt-recipe-item input[type="checkbox"] { margin-top: 3px; cursor: pointer; flex-shrink: 0; }
+  .chatgpt-recipe-content { flex: 1; }
+  .chatgpt-recipe-name { font-weight: 600; margin-bottom: 4px; }
+  .chatgpt-recipe-context { font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+  .chatgpt-recipe-desc { font-size: 13px; color: var(--text); line-height: 1.4; }
+
   .ai-result {
     background: var(--surface); border: 1.5px solid var(--border);
     border-radius: var(--radius); padding: 20px; margin-top: 16px;
@@ -532,7 +546,7 @@
     padding: 32px 24px;
   }
   #authOverlay.hidden { display: none; }
-  .auth-logo { height: 56px; margin-bottom: 32px; }
+  .auth-logo { height: 100px; margin-bottom: 32px; }
   .auth-card { width: 100%; max-width: 360px; }
   .auth-title { font-size: 22px; font-weight: 700; margin-bottom: 6px; text-align: center; color: var(--text); }
   .auth-sub { color: var(--muted); font-size: 14px; text-align: center; margin-bottom: 28px; }
@@ -562,7 +576,7 @@
 
 <!-- NAV -->
 <nav class="nav">
-  <img class="nav-logo" src="flavr-logo.png" alt="Flavr">
+  <img class="nav-logo" src="flavr-logo-2.png" alt="Flavr">
   <div class="nav-actions">
     <button class="nav-btn-flavr" onclick="openImportSheet()" title="Importieren">
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -575,7 +589,7 @@
 </nav>
 
 <!-- PAGES -->
-<div class="page active" id="page-recipes">
+<div class="page" id="page-recipes">
   <div class="hero-slider" id="heroSlider">
     <div class="hero-slider-track" id="heroTrack"></div>
     <div class="hero-dots" id="heroDots"></div>
@@ -591,7 +605,7 @@
   <div class="recipe-grid" id="recipeGrid"></div>
 </div>
 
-<div class="page" id="page-ai">
+<div class="page active" id="page-ai">
   <div class="ai-page">
     <div class="ai-hero">
       <div class="ai-hero-icon">🤖</div>
@@ -607,7 +621,10 @@
     </div>
     <div class="ingredient-chips" id="ingredientChips"></div>
 
-    <button class="btn-primary" onclick="askAI()" id="aiBtn">✨ Rezeptvorschläge erhalten</button>
+    <div style="display:flex;gap:8px;margin-bottom:12px;">
+      <button class="btn-primary" onclick="askAI()" id="aiBtn" style="flex:1">✨ Vorschläge</button>
+      <button class="btn-secondary" onclick="analyzeIngredientsPhoto()" id="photoBtn" style="flex:1">📸 Foto</button>
+    </div>
 
     <div id="aiResult"></div>
 
@@ -618,13 +635,6 @@
   <div class="settings-section">
     <div class="settings-row">
       <div>
-        <div class="settings-label">bigmeatlove.de Rezepte</div>
-        <div class="settings-sub" id="bmlStatus">Lade Status…</div>
-      </div>
-      <button class="btn-secondary" onclick="importBigMeatLove(true)" style="padding:8px 14px;font-size:13px;">🥩 Import</button>
-    </div>
-    <div class="settings-row">
-      <div>
         <div class="settings-label">Alle Daten exportieren</div>
         <div class="settings-sub">JSON-Datei mit allen Rezepten</div>
       </div>
@@ -632,11 +642,20 @@
     </div>
     <div class="settings-row">
       <div>
-        <div class="settings-label">Daten importieren</div>
+        <div class="settings-label">Rezepte importieren</div>
         <div class="settings-sub">JSON-Datei hochladen</div>
       </div>
       <label class="btn-secondary" style="padding:8px 14px;font-size:13px;cursor:pointer;">
         📂 Import <input type="file" accept=".json" onchange="importData(event)" style="display:none">
+      </label>
+    </div>
+    <div class="settings-row">
+      <div>
+        <div class="settings-label">ChatGPT-Konversation</div>
+        <div class="settings-sub">Konversation hochladen, Rezepte extrahieren</div>
+      </div>
+      <label class="btn-secondary" style="padding:8px 14px;font-size:13px;cursor:pointer;">
+        💬 Upload <input type="file" accept=".txt,.json,.png,.jpg,.jpeg,.gif,.webp" onchange="handleChatGPTImport(event)" style="display:none">
       </label>
     </div>
     <div class="settings-row">
@@ -666,6 +685,13 @@
       <div id="scraperImportLog" style="margin-top:12px;"></div>
     </div>
 
+    <div id="chatgptImportSection" style="padding:16px 0 8px;border-top:1px solid var(--border);margin-top:8px;display:none;">
+      <div class="form-label">ChatGPT-Rezepte</div>
+      <div id="chatgptImportStatus" style="color:var(--muted);font-size:13px;margin-bottom:12px;"></div>
+      <div id="chatgptRecipesList" style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px;"></div>
+      <button class="btn-primary" id="chatgptImportBtn" onclick="saveChatGPTRecipes()" style="display:none;width:100%;">✨ Ausgewählte speichern</button>
+    </div>
+
     <div style="padding:16px 0 8px;border-top:1px solid var(--border);margin-top:8px;">
       <div class="form-label">Claude API Key</div>
       <input type="password" id="apiKeyInput" placeholder="sk-ant-…" oninput="saveApiKey()">
@@ -684,7 +710,7 @@
         <label class="form-label">Bring! E-Mail</label>
         <input class="form-input" type="email" id="bringEmail" placeholder="deine@email.de" autocomplete="off">
         <label class="form-label">Bring! Passwort</label>
-        <input class="form-input" type="password" id="bringPassword" placeholder="Dein Bring! Passwort">
+        <input class="form-input" type="password" id="bringPassword" autocomplete="off">
         <button class="btn-primary" onclick="bringConnect()" id="bringConnectBtn" style="margin-top:4px;">🛒 Mit Bring! verbinden</button>
       </div>
       <div id="bringConnectedInfo" style="display:none">
@@ -708,10 +734,10 @@
 
 <!-- TABS -->
 <nav class="tabs">
-  <button class="tab active" id="tab-recipes" onclick="switchTab('recipes')">
+  <button class="tab" id="tab-recipes" onclick="switchTab('recipes')">
     <span class="tab-icon">📖</span>Rezepte
   </button>
-  <button class="tab" id="tab-ai" onclick="switchTab('ai')">
+  <button class="tab active" id="tab-ai" onclick="switchTab('ai')">
     <span class="tab-icon">✨</span>KI-Koch
   </button>
   <button class="tab" id="tab-settings" onclick="switchTab('settings')">
@@ -861,18 +887,18 @@
 <!-- ═══ AUTH OVERLAY ═══ -->
 <div id="authOverlay">
   <div id="authLoading" style="text-align:center">
-    <img class="auth-logo" src="flavr-logo.png" alt="Flavr">
+    <img class="auth-logo" src="flavr-logo-2.png" alt="Flavr">
     <div style="color:var(--muted);font-size:14px">Laden…</div>
   </div>
   <div id="authForm" style="display:none;width:100%;max-width:360px">
-    <img class="auth-logo" src="flavr-logo.png" alt="Flavr" style="display:block;margin:0 auto 32px">
+    <img class="auth-logo" src="flavr-logo-2.png" alt="Flavr" style="display:block;margin:0 auto 32px">
     <div class="auth-title" id="authTitle">Willkommen zurück</div>
     <div class="auth-sub" id="authSub">Melde dich an, um deine Rezepte zu sehen</div>
     <div class="auth-error" id="authError"></div>
     <label class="form-label">E-Mail</label>
     <input class="form-input" type="email" id="authEmail" placeholder="du@beispiel.de" autocomplete="email">
     <label class="form-label">Passwort</label>
-    <input class="form-input" type="password" id="authPassword" placeholder="Mindestens 6 Zeichen" autocomplete="current-password"
+    <input class="form-input" type="password" id="authPassword" autocomplete="off"
       onkeydown="if(event.key==='Enter')handleAuth()">
     <button class="btn-google" onclick="signInWithGoogle()" id="googleBtn">
       <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.35-8.16 2.35-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
@@ -1068,6 +1094,8 @@ function showApp() {
     keyInput.value = storedKey;
     if (storedKey) localStorage.setItem('claude_api_key', storedKey);
   }
+  syncBringDataToLocalStorage();
+  updateBringUI();
 }
 function showAuthScreen() {
   document.getElementById('authLoading').style.display = 'none';
@@ -1317,7 +1345,7 @@ async function generateRecipeImage(id) {
 
     // On localhost Pollinations returns 403 due to Origin header — proxy via Supabase
     if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
-      const proxyResp = await fetch(BRING_PROXY, {
+      const proxyResp = await fetch(BRING_PROXY_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'imageProxy', url: imageUrl }),
@@ -1748,16 +1776,194 @@ async function createFromSuggestion(i) {
 
   if (recipe && recipe.title) {
     const r = { ...recipe, id: uid(), isFavorite: false, sourceApp: '✨ KI', notes: `Erstellt aus: ${aiIngredients.join(', ')}`, createdAt: Date.now() };
-    if (currentUser) await sb.from('recipes').insert(recipeToRow(r));
-    recipes.unshift(r);
-    if (!currentUser) save();
-    renderRecipes();
-    showToast(`„${r.title}" gespeichert ✓`);
-    document.getElementById('aiResult').innerHTML = '';
-    switchTab('recipes');
-    openDetail(r.id);
+    showRecipePreview(r);
   } else {
     document.getElementById('aiResult').innerHTML = `<div class="ai-result"><div style="color:var(--red)">⚠️ Fehler beim Erstellen – bitte erneut versuchen</div></div>`;
+  }
+}
+
+async function analyzeIngredientsPhoto() {
+  const key = getApiKey();
+  if (!key) { showToast('Bitte API Key eingeben ↓'); return; }
+
+  // Create file input for camera
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/*';
+  input.capture = 'environment'; // Use back camera on mobile
+  input.onchange = async e => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    document.getElementById('aiResult').innerHTML = `<div class="ai-loading"><div class="ai-loading-dots">✦ ✦ ✦</div><div style="margin-top:8px;font-size:14px">Foto wird analysiert…</div></div>`;
+
+    try {
+      const base64 = await fileToBase64(file);
+      const suggestions = await callClaudeWithImage(
+        `Du bist ein kreativer Koch-Assistent. Analysiere das Bild von Zutaten und schlage genau 3 Gerichte vor, die damit gekocht werden können. Antworte NUR mit validem JSON-Array (kein Markdown):
+[{"name":"...","description":"...","missingIngredients":["..."],"difficulty":"einfach","time":"20 Min"}]`,
+        'Analysiere dieses Bild von Zutaten und schlage 3 passende Rezepte vor.',
+        base64,
+        file.type
+      );
+
+      if (!suggestions || !Array.isArray(suggestions)) {
+        document.getElementById('aiResult').innerHTML = `<div class="ai-result"><div style="color:var(--red)">⚠️ Keine Antwort erhalten. Bitte erneut versuchen.</div></div>`;
+        return;
+      }
+
+      document.getElementById('aiResult').innerHTML = `
+        <div class="ai-result">
+          <div class="ai-result-title">📸 ${suggestions.length} Vorschläge aus Foto</div>
+          ${suggestions.map((s, i) => `
+            <div class="ai-suggestion" onclick="createFromPhotoSuggestion(${i})">
+              <div class="ai-suggestion-name">${esc(s.name)} <span style="color:var(--muted);font-size:12px">· ${esc(s.difficulty)} · ${esc(s.time)}</span></div>
+              <div class="ai-suggestion-desc">${esc(s.description)}</div>
+              ${s.missingIngredients?.length ? `<div style="margin-top:6px;font-size:12px;color:var(--accent)">Fehlt noch: ${s.missingIngredients.join(', ')}</div>` : ''}
+            </div>`).join('')}
+        </div>`;
+      window._photoSuggestions = suggestions;
+    } catch(err) {
+      console.error('Photo analysis error:', err);
+      document.getElementById('aiResult').innerHTML = `<div class="ai-result"><div style="color:var(--red)">⚠️ Fehler bei der Foto-Analyse</div></div>`;
+    }
+  };
+  input.click();
+}
+
+async function createFromPhotoSuggestion(i) {
+  const s = window._photoSuggestions?.[i];
+  if (!s) return;
+  document.getElementById('aiResult').innerHTML = `<div class="ai-loading"><div class="ai-loading-dots">✦ ✦ ✦</div><div style="margin-top:8px;font-size:14px">Vollständiges Rezept wird erstellt…</div></div>`;
+
+  const recipe = await callClaude(
+    'Erstelle ein vollständiges Rezept als reines JSON ohne Markdown: {"title":"...","category":"Abendessen","duration":30,"servings":2,"ingredients":["..."],"steps":["..."],"tags":["..."]}',
+    `Erstelle ein vollständiges Rezept für: ${s.name}.`
+  );
+
+  if (recipe && recipe.title) {
+    const r = { ...recipe, id: uid(), isFavorite: false, sourceApp: '📸 KI Foto', notes: `Aus Foto analysiert`, createdAt: Date.now() };
+    showRecipePreview(r);
+  } else {
+    document.getElementById('aiResult').innerHTML = `<div class="ai-result"><div style="color:var(--red)">⚠️ Fehler beim Erstellen – bitte erneut versuchen</div></div>`;
+  }
+}
+
+function showRecipePreview(recipe) {
+  const r = recipe;
+  document.getElementById('aiResult').innerHTML = `
+    <div class="ai-result" style="background:var(--surface);border-radius:12px;padding:16px;margin-top:12px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+        <div class="ai-result-title">📋 Rezept-Vorschau</div>
+      </div>
+      <div style="background:rgba(0,0,0,0.05);border-radius:8px;padding:12px;margin-bottom:12px;">
+        <div style="font-weight:600;margin-bottom:4px;">${esc(r.title)}</div>
+        <div style="font-size:13px;color:var(--muted);">
+          ${r.category ? `<span>📂 ${esc(r.category)}</span> · ` : ''}
+          ${r.duration ? `<span>⏱ ${r.duration}m</span> · ` : ''}
+          ${r.servings ? `<span>👤 ${r.servings}</span>` : ''}
+        </div>
+      </div>
+      
+      ${r.ingredients?.length ? `
+        <div style="margin-bottom:12px;">
+          <div style="font-weight:600;margin-bottom:6px;">🥘 Zutaten</div>
+          <ul style="margin:0;padding-left:20px;font-size:13px;color:var(--text);">
+            ${r.ingredients.map(ing => `<li>${esc(ing)}</li>`).join('')}
+          </ul>
+        </div>` : ''}
+      
+      ${r.steps?.length ? `
+        <div style="margin-bottom:12px;">
+          <div style="font-weight:600;margin-bottom:6px;">👨‍🍳 Zubereitung</div>
+          <ol style="margin:0;padding-left:20px;font-size:13px;color:var(--text);line-height:1.6;">
+            ${r.steps.map(step => `<li>${esc(step)}</li>`).join('')}
+          </ol>
+        </div>` : ''}
+      
+      <div style="display:flex;gap:8px;margin-top:12px;">
+        <button class="btn-secondary" onclick="rejectRecipePreview()" style="flex:1;">✕ Verwerfen</button>
+        <button class="btn-primary" onclick="saveRecipePreview()" style="flex:1;">✓ Speichern</button>
+      </div>
+    </div>`;
+  window._previewRecipe = r;
+}
+
+function rejectRecipePreview() {
+  window._previewRecipe = null;
+  document.getElementById('aiResult').innerHTML = '';
+  showToast('Rezept verworfen');
+}
+
+function saveRecipePreview() {
+  try {
+    const recipe = window._previewRecipe;
+    if (!recipe) throw new Error('Kein Vorschau-Rezept vorhanden');
+    saveRecipeFromPreview(recipe);
+    window._previewRecipe = null;
+  } catch(e) {
+    console.error('Save preview error:', e);
+    showToast('Fehler beim Speichern');
+  }
+}
+
+async function saveRecipeFromPreview(r) {
+  if (currentUser) await sb.from('recipes').insert(recipeToRow(r));
+  recipes.unshift(r);
+  if (!currentUser) save();
+  renderRecipes();
+  showToast(`„${r.title}" gespeichert ✓`);
+  document.getElementById('aiResult').innerHTML = '';
+}
+
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result.split(',')[1]); // Remove data:image/...;base64,
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+async function callClaudeWithImage(system, userMsg, base64Image, mimeType) {
+  const key = getApiKey();
+  if (!key) return null;
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': key,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 1500,
+        system,
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'text', text: userMsg },
+            { type: 'image', source: { type: 'base64', media_type: mimeType, data: base64Image } }
+          ]
+        }]
+      })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      const msg = err?.error?.message || `HTTP ${res.status}`;
+      showToast('API Fehler: ' + msg);
+      console.error('Claude API error:', msg);
+      return null;
+    }
+    const data = await res.json();
+    const text = data.content?.[0]?.text || '';
+    return safeParseJSON(text);
+  } catch(e) {
+    showToast('Netzwerkfehler – bitte erneut versuchen');
+    console.error('callClaudeWithImage error:', e);
+    return null;
   }
 }
 
@@ -1838,11 +2044,38 @@ async function bringProxy(payload) {
   return data;
 }
 
+function getBringData() {
+  const metadata = currentUser?.user_metadata || {};
+  return {
+    uuid: metadata.bring_uuid || localStorage.getItem('bring_uuid'),
+    token: metadata.bring_token || localStorage.getItem('bring_token'),
+    name: metadata.bring_name || localStorage.getItem('bring_name'),
+    selectedList: metadata.bring_selected_list || localStorage.getItem('bring_selected_list')
+  };
+}
+
+function syncBringDataToLocalStorage() {
+  const { uuid, token, name, selectedList } = getBringData();
+  if (uuid) localStorage.setItem('bring_uuid', uuid); else localStorage.removeItem('bring_uuid');
+  if (token) localStorage.setItem('bring_token', token); else localStorage.removeItem('bring_token');
+  if (name) localStorage.setItem('bring_name', name); else localStorage.removeItem('bring_name');
+  if (selectedList) localStorage.setItem('bring_selected_list', selectedList); else localStorage.removeItem('bring_selected_list');
+}
+
+async function persistBringData(metadata) {
+  if (!currentUser || !sb) return;
+  try {
+    const { error } = await sb.auth.updateUser({ data: metadata });
+    if (error) throw error;
+    currentUser.user_metadata = { ...currentUser.user_metadata, ...metadata };
+  } catch(e) {
+    console.error('Bring metadata persist error:', e);
+  }
+}
+
 function getBringConnected() {
-  const uuid = localStorage.getItem('bring_uuid');
-  const token = localStorage.getItem('bring_token');
+  const { uuid, token } = getBringData();
   if (!uuid || !token || uuid === 'undefined' || token === 'undefined') {
-    // Clear any stale/corrupt data
     ['bring_uuid','bring_token','bring_name','bring_lists','bring_selected_list'].forEach(k => localStorage.removeItem(k));
     return false;
   }
@@ -1861,14 +2094,16 @@ async function bringConnect() {
     const uuid = data.uuid || data.publicUuid;
     const token = data.access_token || data.accessToken;
     if (!uuid || !token) throw new Error(`Unerwartetes Antwortformat: ${JSON.stringify(data)}`);
+    const name = data.name || email;
     localStorage.setItem('bring_uuid', uuid);
     localStorage.setItem('bring_token', token);
-    localStorage.setItem('bring_name', data.name || email);
+    localStorage.setItem('bring_name', name);
+    if (currentUser) await persistBringData({ bring_uuid: uuid, bring_token: token, bring_name: name });
     document.getElementById('bringEmail').value = '';
     document.getElementById('bringPassword').value = '';
     await bringLoadLists();
     updateBringUI();
-    showToast(`✓ Mit Bring! verbunden als ${data.name || email}`);
+    showToast(`✓ Mit Bring! verbunden als ${name}`);
   } catch(e) {
     console.error('Bring login error:', e);
     showToast('Verbindung fehlgeschlagen – E-Mail oder Passwort falsch?');
@@ -1878,8 +2113,7 @@ async function bringConnect() {
 }
 
 async function bringLoadLists() {
-  const uuid = localStorage.getItem('bring_uuid');
-  const token = localStorage.getItem('bring_token');
+  const { uuid, token, selectedList } = getBringData();
   if (!uuid || !token) return;
   try {
     const data = await bringProxy({ action: 'getLists', uuid, token });
@@ -1887,31 +2121,40 @@ async function bringLoadLists() {
     localStorage.setItem('bring_lists', JSON.stringify(lists));
     const select = document.getElementById('bringListSelect');
     if (!select) return;
-    const savedListId = localStorage.getItem('bring_selected_list');
+    const savedListId = selectedList || localStorage.getItem('bring_selected_list');
     select.innerHTML = lists.map(l =>
       `<option value="${l.listUuid}" ${l.listUuid === savedListId ? 'selected' : ''}>${l.name}</option>`
     ).join('');
     if (!savedListId && lists.length > 0) {
-      localStorage.setItem('bring_selected_list', lists[0].listUuid);
+      const firstList = lists[0].listUuid;
+      localStorage.setItem('bring_selected_list', firstList);
+      if (currentUser) await persistBringData({ bring_selected_list: firstList });
     }
   } catch(e) {
     console.error('Bring load lists error:', e);
   }
 }
 
-function bringSelectList() {
+async function bringSelectList() {
   const val = document.getElementById('bringListSelect')?.value;
-  if (val) localStorage.setItem('bring_selected_list', val);
+  if (val) {
+    localStorage.setItem('bring_selected_list', val);
+    if (currentUser) await persistBringData({ bring_selected_list: val });
+  }
 }
 
-function bringDisconnect() {
+async function bringDisconnect() {
   if (!confirm('Bring!-Verbindung wirklich trennen?')) return;
   ['bring_uuid','bring_token','bring_name','bring_lists','bring_selected_list'].forEach(k => localStorage.removeItem(k));
+  if (currentUser && sb) {
+    await persistBringData({ bring_uuid: null, bring_token: null, bring_name: null, bring_selected_list: null });
+  }
   updateBringUI();
   showToast('Bring!-Verbindung getrennt');
 }
 
 function updateBringUI() {
+  syncBringDataToLocalStorage();
   const connected = getBringConnected();
   const dot = document.getElementById('bringStatusDot');
   const statusText = document.getElementById('bringStatusText');
@@ -2009,6 +2252,21 @@ async function clearAllData() {
 // ═══════════════════════════════════════════════
 // UI HELPERS
 // ═══════════════════════════════════════════════
+function setRandomAiHeroBackground() {
+  const hero = document.querySelector('.ai-hero');
+  if (!hero) return;
+
+  const recipesWithImages = recipes.filter(r => r.imageUrl);
+  if (recipesWithImages.length === 0) {
+    // Fallback: keep default background
+    hero.style.backgroundImage = '';
+    return;
+  }
+
+  const randomRecipe = recipesWithImages[Math.floor(Math.random() * recipesWithImages.length)];
+  hero.style.backgroundImage = `linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), url(${randomRecipe.imageUrl})`;
+}
+
 function switchTab(t) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
@@ -2016,10 +2274,17 @@ function switchTab(t) {
   document.getElementById('tab-' + t).classList.add('active');
   document.getElementById('fab').style.display = t === 'recipes' ? 'flex' : 'none';
   if (t === 'settings') { updateBringUI(); renderScraperImportLog(); }
+  if (t === 'ai') { setRandomAiHeroBackground(); }
 }
+
 function openSheet(id) { document.getElementById(id).classList.add('open'); document.body.style.overflow = 'hidden'; }
 function closeSheet(id) { document.getElementById(id).classList.remove('open'); document.body.style.overflow = ''; }
 document.querySelectorAll('.sheet-overlay').forEach(o => o.addEventListener('click', e => { if (e.target === o) closeSheet(o.id); }));
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.sheet-overlay.open').forEach(openSheetEl => closeSheet(openSheetEl.id));
+  }
+});
 
 function showToast(msg) {
   const t = document.getElementById('toast');
@@ -2116,6 +2381,235 @@ async function importBigMeatLove(force) {
   const statusEl = document.getElementById('bmlStatus');
   if (statusEl) statusEl.textContent = `${newOnes.length} Rezepte importiert ✓`;
   if (force) showToast(`${newOnes.length} bigmeatlove-Rezepte importiert ✓`);
+}
+
+// ═══════════════════════════════════════════════
+// CHATGPT CONVERSATION IMPORT
+// ═══════════════════════════════════════════════
+let chatgptParsedRecipes = [];
+
+async function handleChatGPTImport(event) {
+  const file = event.target.files[0];
+  event.target.value = '';
+  if (!file) return;
+
+  const statusEl = document.getElementById('chatgptImportStatus');
+  statusEl.textContent = '⏳ Konversation wird analysiert…';
+  document.getElementById('chatgptImportSection').style.display = '';
+
+  try {
+    let content = '';
+
+    // Handle image files
+    if (file.type.startsWith('image/')) {
+      const base64 = await fileToBase64(file);
+      const mimeType = file.type;
+      const result = await callClaudeWithImageForParsing(
+        `Analysiere dieses Bild einer ChatGPT-Konversation oder einer Rezept-Diskussion. 
+Extrahiere ALLE erwähnten Rezepte mit: Rezeptname, Beschreibung, Zutaten (wenn vorhanden), Zubereitungsschritte (wenn vorhanden) und den Kontext (z.B. "für 4 Personen", "vegetarisch").
+Antworte NUR mit validem JSON als Array:
+[{"name":"...","description":"...","ingredients":["..."],"steps":["..."],"context":"..."}]`,
+        base64,
+        mimeType
+      );
+      content = JSON.stringify(result);
+    } else {
+      // Handle text/JSON files
+      content = await file.text();
+    }
+
+    chatgptParsedRecipes = await parseConversationWithClaude(content);
+
+    if (!chatgptParsedRecipes || chatgptParsedRecipes.length === 0) {
+      statusEl.textContent = '⚠️ Keine Rezepte gefunden. Bitte versuche ein anderes Format.';
+      return;
+    }
+
+    displayChatGPTRecipes(chatgptParsedRecipes);
+  } catch(err) {
+    console.error('ChatGPT import error:', err);
+    statusEl.textContent = '❌ Fehler beim Importieren. Prüfe den API Key und versuche es erneut.';
+  }
+}
+
+async function parseConversationWithClaude(conversationText) {
+  const key = getApiKey();
+  if (!key) return null;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': key,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 2000,
+        system: `Du bist ein Rezept-Extraktions-Experte. 
+Analysiere die folgende ChatGPT-Konversation oder Rezept-Diskussion.
+Extrahiere ALLE erwähnten Rezepte als JSON-Array.
+Für jedes Rezept: name, description, ingredients (Array), steps (Array), context (z.B. Personenanzahl, Besonderheiten).
+Falls Zutaten/Schritte fehlen, setze sie auf []. Der Kontext sollte hilfreich für die Vervollständigung sein.
+Antworte NUR mit validem JSON, kein Markdown:
+[{"name":"...","description":"...","ingredients":["..."],"steps":["..."],"context":"..."}]`,
+        messages: [{
+          role: 'user',
+          content: `Bitte analysiere diese Konversation und extrahiere alle Rezepte:\n\n${conversationText}`
+        }]
+      })
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error?.message || `HTTP ${res.status}`);
+    }
+
+    const data = await res.json();
+    const text = data.content?.[0]?.text || '';
+    return safeParseJSON(text) || [];
+  } catch(e) {
+    console.error('Parse conversation error:', e);
+    showToast('Fehler bei der Analyse – API Key prüfen');
+    return [];
+  }
+}
+
+async function callClaudeWithImageForParsing(prompt, base64Image, mimeType) {
+  const key = getApiKey();
+  if (!key) return null;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': key,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 2000,
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'text', text: prompt },
+            { type: 'image', source: { type: 'base64', media_type: mimeType, data: base64Image } }
+          ]
+        }]
+      })
+    });
+
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    const text = data.content?.[0]?.text || '';
+    return safeParseJSON(text) || [];
+  } catch(e) {
+    console.error('Image parsing error:', e);
+    return [];
+  }
+}
+
+function displayChatGPTRecipes(recipes) {
+  const statusEl = document.getElementById('chatgptImportStatus');
+  const listEl = document.getElementById('chatgptRecipesList');
+  const btnEl = document.getElementById('chatgptImportBtn');
+
+  statusEl.textContent = `${recipes.length} Rezepte gefunden. Wähle aus, welche du speichern möchtest:`;
+  listEl.innerHTML = recipes.map((r, i) => `
+    <div class="chatgpt-recipe-item" onclick="toggleChatGPTRecipe(${i})">
+      <input type="checkbox" id="chatgpt-recipe-${i}" data-index="${i}">
+      <div class="chatgpt-recipe-content">
+        <div class="chatgpt-recipe-name">${esc(r.name)}</div>
+        ${r.context ? `<div class="chatgpt-recipe-context">📝 ${esc(r.context)}</div>` : ''}
+        ${r.description ? `<div class="chatgpt-recipe-desc">${esc(r.description)}</div>` : ''}
+      </div>
+    </div>`).join('');
+
+  btnEl.style.display = '';
+}
+
+function toggleChatGPTRecipe(index) {
+  const checkbox = document.getElementById(`chatgpt-recipe-${index}`);
+  checkbox.checked = !checkbox.checked;
+  const item = checkbox.closest('.chatgpt-recipe-item');
+  item.classList.toggle('selected', checkbox.checked);
+}
+
+async function saveChatGPTRecipes() {
+  const selected = [];
+  document.querySelectorAll('input[id^="chatgpt-recipe-"]:checked').forEach(cb => {
+    const index = parseInt(cb.getAttribute('data-index'));
+    selected.push(chatgptParsedRecipes[index]);
+  });
+
+  if (selected.length === 0) { showToast('Bitte wähle mindestens ein Rezept'); return; }
+
+  const btnEl = document.getElementById('chatgptImportBtn');
+  btnEl.textContent = '⏳ Rezepte werden vervollständigt…';
+  btnEl.disabled = true;
+
+  const completedRecipes = [];
+  for (const recipe of selected) {
+    try {
+      const completed = await completeRecipeDetails(recipe);
+      if (completed.title) completedRecipes.push(completed);
+    } catch(e) {
+      console.error('Completion error:', e);
+    }
+  }
+
+  // Save to DB/local storage
+  for (const r of completedRecipes) {
+    const recipeObj = { ...r, id: uid(), isFavorite: false, sourceApp: '💬 ChatGPT', createdAt: Date.now() };
+    if (currentUser) await sb.from('recipes').insert(recipeToRow(recipeObj));
+    recipes.unshift(recipeObj);
+  }
+  if (!currentUser) save();
+  renderRecipes();
+
+  showToast(`✓ ${completedRecipes.length} Rezepte gespeichert`);
+  document.getElementById('chatgptImportSection').style.display = 'none';
+  btnEl.textContent = '✨ Ausgewählte speichern';
+  btnEl.disabled = false;
+}
+
+async function completeRecipeDetails(recipe) {
+  const key = getApiKey();
+  if (!key) return recipe;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': key,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 1500,
+        system: `Vervollständige ein Rezept mit fehlenden Informationen. Antworte als reines JSON ohne Markdown:
+{"title":"...","category":"Abendessen","duration":30,"servings":2,"ingredients":["..."],"steps":["..."],"tags":["..."]}`,
+        messages: [{
+          role: 'user',
+          content: `Vervollständige dieses Rezept mit fehlenden Zutaten und Schritten:\n${JSON.stringify(recipe)}\n\nDer Kontext war: ${recipe.context || 'normal'}`
+        }]
+      })
+    });
+
+    if (!res.ok) return recipe;
+    const data = await res.json();
+    const text = data.content?.[0]?.text || '';
+    return safeParseJSON(text) || recipe;
+  } catch(e) {
+    console.error('Complete recipe error:', e);
+    return recipe;
+  }
 }
 
 // ═══════════════════════════════════════════════
@@ -2660,6 +3154,7 @@ async function initApp() {
       renderRecipes();
       initHeroSlider();
       updateBmlStatus();
+      setRandomAiHeroBackground();
       showApp();
     } else if (event === 'SIGNED_OUT') {
       currentUser = null;
@@ -2681,6 +3176,7 @@ async function initApp() {
       renderRecipes();
       initHeroSlider();
       updateBmlStatus();
+      setRandomAiHeroBackground();
       showApp();
     } else {
       showAuthScreen();
