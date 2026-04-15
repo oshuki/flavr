@@ -738,8 +738,6 @@ async function handlePhotoImport(event) {
   const file = event.target.files[0];
   event.target.value = ''; // Fix: reset immediately so same file can be re-imported
   if (!file) return;
-  const key = getApiKey();
-  if (!key) { showToast('Bitte zuerst API Key hinterlegen'); switchTab('ai'); return; }
 
   closeSheet('importSheet');
   showToast('KI analysiert Foto…');
@@ -749,9 +747,9 @@ async function handlePhotoImport(event) {
   catch(e) { showToast('Fehler beim Lesen der Datei'); return; }
 
   try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    const response = await fetch('http://localhost:3000/api/claude', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: 'claude-haiku-4-5-20251001', max_tokens: 1200,
         system: 'Extrahiere das Rezept aus dem Bild. Antworte NUR mit reinem JSON, kein Markdown: {"title":"...","category":"Abendessen","duration":30,"servings":2,"ingredients":["..."],"steps":["..."],"tags":["..."]}',
@@ -763,7 +761,7 @@ async function handlePhotoImport(event) {
     });
     if (!response.ok) {
       const err = await response.json().catch(() => ({}));
-      showToast('API Fehler: ' + (err?.error?.message || `HTTP ${response.status}`));
+      showToast('API Fehler: ' + (err?.error || `HTTP ${response.status}`));
       return;
     }
     const data = await response.json();
@@ -1009,17 +1007,10 @@ function fileToBase64(file) {
 }
 
 async function callClaudeWithImage(system, userMsg, base64Image, mimeType) {
-  const key = getApiKey();
-  if (!key) return null;
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const res = await fetch('http://localhost:3000/api/claude', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': key,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true'
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: 'claude-haiku-4-5-20251001',
         max_tokens: 1500,
@@ -1035,7 +1026,7 @@ async function callClaudeWithImage(system, userMsg, base64Image, mimeType) {
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      const msg = err?.error?.message || `HTTP ${res.status}`;
+      const msg = err?.error || `HTTP ${res.status}`;
       showToast('API Fehler: ' + msg);
       console.error('Claude API error:', msg);
       return null;
@@ -1054,17 +1045,10 @@ async function callClaudeWithImage(system, userMsg, base64Image, mimeType) {
 // CLAUDE API HELPER
 // ═══════════════════════════════════════════════
 async function callClaude(system, userMsg) {
-  const key = getApiKey();
-  if (!key) return null;
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const res = await fetch('http://localhost:3000/api/claude', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': key,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true'
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: 'claude-haiku-4-5-20251001',
         max_tokens: 1500,
@@ -1074,7 +1058,7 @@ async function callClaude(system, userMsg) {
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      const msg = err?.error?.message || `HTTP ${res.status}`;
+      const msg = err?.error || `HTTP ${res.status}`;
       showToast('API Fehler: ' + msg);
       console.error('Claude API error:', msg);
       return null;
@@ -1516,18 +1500,10 @@ Antworte NUR mit validem JSON als Array:
 }
 
 async function parseConversationWithClaude(conversationText) {
-  const key = getApiKey();
-  if (!key) return null;
-
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const res = await fetch('http://localhost:3000/api/claude', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': key,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true'
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: 'claude-haiku-4-5-20251001',
         max_tokens: 2000,
@@ -1547,7 +1523,7 @@ Antworte NUR mit validem JSON, kein Markdown:
 
     if (!res.ok) {
       const err = await res.json();
-      throw new Error(err.error?.message || `HTTP ${res.status}`);
+      throw new Error(err.error || `HTTP ${res.status}`);
     }
 
     const data = await res.json();
@@ -1561,18 +1537,10 @@ Antworte NUR mit validem JSON, kein Markdown:
 }
 
 async function callClaudeWithImageForParsing(prompt, base64Image, mimeType) {
-  const key = getApiKey();
-  if (!key) return null;
-
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const res = await fetch('http://localhost:3000/api/claude', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': key,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true'
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: 'claude-haiku-4-5-20251001',
         max_tokens: 2000,
@@ -1661,18 +1629,10 @@ async function saveChatGPTRecipes() {
 }
 
 async function completeRecipeDetails(recipe) {
-  const key = getApiKey();
-  if (!key) return recipe;
-
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const res = await fetch('http://localhost:3000/api/claude', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': key,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true'
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: 'claude-haiku-4-5-20251001',
         max_tokens: 1500,
