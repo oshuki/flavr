@@ -3,7 +3,7 @@
 [build]
   base = "frontend"
   command = "npm install && npm run build"
-  publish = "frontend/.output/public"
+  publish = ".output/public"
 
 # Environment variables (set in Netlify UI: Site settings → Environment variables)
 # SENTRY_DSN_FRONTEND=https://...
