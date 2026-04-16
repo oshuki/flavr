@@ -3,20 +3,12 @@
     <div class="auth-card card">
       <img src="/flavr-logo-2.png" alt="Flavr" class="auth-logo">
       
-      <!-- Loading State während OAuth Callback -->
-      <div v-if="isProcessingCallback" class="auth-loading">
-        <div class="spinner"></div>
-        <p>Anmeldung läuft...</p>
-      </div>
+      <h2>{{ isSignUp ? 'Registrieren' : 'Willkommen zurück' }}</h2>
+      <p class="auth-sub">
+        {{ isSignUp ? 'Erstelle einen Account' : 'Melde dich an, um deine Rezepte zu sehen' }}
+      </p>
 
-      <!-- Normal Login Form -->
-      <div v-else>
-        <h2>{{ isSignUp ? 'Registrieren' : 'Willkommen zurück' }}</h2>
-        <p class="auth-sub">
-          {{ isSignUp ? 'Erstelle einen Account' : 'Melde dich an, um deine Rezepte zu sehen' }}
-        </p>
-
-        <div v-if="error" class="auth-error">{{ error }}</div>
+      <div v-if="error" class="auth-error">{{ error }}</div>
 
       <form @submit.prevent="handleAuth">
         <div class="form-group">
@@ -58,7 +50,6 @@
           {{ isSignUp ? 'Anmelden' : 'Registrieren' }}
         </a>
       </div>
-      </div><!-- Ende v-else -->
     </div>
   </div>
 </template>
@@ -70,47 +61,15 @@ definePageMeta({
 
 const client = useSupabaseClient()
 const user = useSupabaseUser()
-const route = useRoute()
 const email = ref('')
 const password = ref('')
 const isSignUp = ref(false)
 const error = ref('')
-const isProcessingCallback = ref(!!route.query.code)
 
-// Handle OAuth Callback
-onMounted(async () => {
-  // Wenn OAuth Code in URL ist
-  if (route.query.code) {
-    isProcessingCallback.value = true
-    
-    try {
-      // Hole aktuelle Session von Supabase
-      const { data: { session } } = await client.auth.getSession()
-      
-      if (session) {
-        // Session erfolgreich geladen, weiterleiten
-        await navigateTo('/')
-      } else {
-        // Keine Session trotz Code - Session Exchange im Hintergrund
-        // Warte auf automatische Session
-        setTimeout(async () => {
-          const { data: { session: retrySession } } = await client.auth.getSession()
-          if (retrySession) {
-            await navigateTo('/')
-          } else {
-            error.value = 'Login fehlgeschlagen - bitte versuche es erneut'
-            isProcessingCallback.value = false
-          }
-        }, 2000)
-      }
-    } catch (e) {
-      console.error('OAuth Callback Error:', e)
-      error.value = 'Authentifizierung fehlgeschlagen'
-      isProcessingCallback.value = false
-    }
-  } else if (user.value) {
-    // User ist bereits eingeloggt, ohne code
-    await navigateTo('/')
+// Wenn User bereits eingeloggt ist
+onMounted(() => {
+  if (user.value) {
+    navigateTo('/')
   }
 })
 
@@ -141,9 +100,6 @@ const handleAuth = async () => {
 const signInWithGoogle = async () => {
   const { error: googleError } = await client.auth.signInWithOAuth({
     provider: 'google',
-    options: {
-      redirectTo: `${window.location.origin}/auth`
-    }
   })
   if (googleError) {
     error.value = googleError.message
@@ -244,29 +200,5 @@ h2 {
 
 .auth-toggle a:hover {
   text-decoration: underline;
-}
-
-.auth-loading {
-  text-align: center;
-  padding: 40px 20px;
-}
-
-.spinner {
-  width: 48px;
-  height: 48px;
-  border: 4px solid var(--border);
-  border-top-color: var(--primary);
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin: 0 auto 20px;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-.auth-loading p {
-  color: var(--muted);
-  font-size: 14px;
 }
 </style>

@@ -2,7 +2,7 @@
   <div class="callback-page">
     <div class="callback-card">
       <div class="spinner"></div>
-      <p>Authentifizierung läuft...</p>
+      <p>{{ message }}</p>
     </div>
   </div>
 </template>
@@ -13,21 +13,26 @@ definePageMeta({
 })
 
 const user = useSupabaseUser()
+const message = ref('Authentifizierung läuft...')
 
-// Warte bis User-Session geladen ist
+// Warte auf User Session nach OAuth Code Exchange
 watch(user, async (newUser) => {
   if (newUser) {
+    message.value = 'Erfolgreich! Weiterleitung...'
     // User ist eingeloggt, leite zur Homepage weiter
     await navigateTo('/')
   }
 }, { immediate: true })
 
-// Fallback: Nach 3 Sekunden weiterleiten wenn noch kein User
+// Fallback: Nach 5 Sekunden zur Auth-Seite wenn noch kein User
 setTimeout(() => {
   if (!user.value) {
-    navigateTo('/auth')
+    message.value = 'Login fehlgeschlagen - weiterleitung...'
+    setTimeout(() => {
+      navigateTo('/auth')
+    }, 1000)
   }
-}, 3000)
+}, 5000)
 </script>
 
 <style scoped>
