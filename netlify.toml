@@ -18,10 +18,8 @@
     X-Content-Type-Options = "nosniff"
     X-Frame-Options = "SAMEORIGIN"
     X-XSS-Protection = "1; mode=block"
-    Referrer-Policy = "strict-origin-when-cross-origin" browser.sentry-cdn.com; style-src 'self' 'unsafe-inline' fonts.googleapis.com; font-src fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://api.anthropic.com https://image.pollinations.ai https://htescszituyzooubmxkh.supabase.co https://o4511226172145664.ingest.de.sentry.i
-    
-    # Content Security Policy - update mit deinen URLs
-    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' fonts.googleapis.com; font-src fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://api.anthropic.com https://image.pollinations.ai https://htescszituyzooubmxkh.supabase.co; object-src 'none';"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' cdn.jsdelivr.net browser.sentry-cdn.com; style-src 'self' 'unsafe-inline' fonts.googleapis.com; font-src fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://api.anthropic.com https://image.pollinations.ai https://htescszituyzooubmxkh.supabase.co https://o4511226172145664.ingest.de.sentry.io; object-src 'none';"
 
 # Performance headers
 [[headers]]
