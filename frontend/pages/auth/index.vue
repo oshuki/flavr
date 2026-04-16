@@ -60,10 +60,29 @@ definePageMeta({
 })
 
 const client = useSupabaseClient()
+const user = useSupabaseUser()
+const route = useRoute()
 const email = ref('')
 const password = ref('')
 const isSignUp = ref(false)
 const error = ref('')
+
+// Handle OAuth Callback (wenn code Parameter in URL ist)
+onMounted(async () => {
+  // Prüfe ob OAuth Code in URL
+  if (route.query.code) {
+    // Warte kurz bis Supabase die Session verarbeitet hat
+    await new Promise(resolve => setTimeout(resolve, 1000))
+    
+    // Prüfe ob User jetzt eingeloggt ist
+    if (user.value) {
+      await navigateTo('/')
+    }
+  } else if (user.value) {
+    // User ist bereits eingeloggt, direkt zur Homepage
+    await navigateTo('/')
+  }
+})
 
 const handleAuth = async () => {
   error.value = ''
@@ -92,6 +111,9 @@ const handleAuth = async () => {
 const signInWithGoogle = async () => {
   const { error: googleError } = await client.auth.signInWithOAuth({
     provider: 'google',
+    options: {
+      redirectTo: `${window.location.origin}/auth`
+    }
   })
   if (googleError) {
     error.value = googleError.message
