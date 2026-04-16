@@ -77,18 +77,40 @@ const isSignUp = ref(false)
 const error = ref('')
 const isProcessingCallback = ref(!!route.query.code)
 
-// Handle OAuth Callback - warte auf User Session
-watch(user, async (newUser) => {
-  if (newUser && route.query.code) {
+// Handle OAuth Callback
+onMounted(async () => {
+  // Wenn OAuth Code in URL ist
+  if (route.query.code) {
     isProcessingCallback.value = true
+    
+    try {
+      // Hole aktuelle Session von Supabase
+      const { data: { session } } = await client.auth.getSession()
+      
+      if (session) {
+        // Session erfolgreich geladen, weiterleiten
+        await navigateTo('/')
+      } else {
+        // Keine Session trotz Code - Session Exchange im Hintergrund
+        // Warte auf automatische Session
+        setTimeout(async () => {
+          const { data: { session: retrySession } } = await client.auth.getSession()
+          if (retrySession) {
+            await navigateTo('/')
+          } else {
+            error.value = 'Login fehlgeschlagen - bitte versuche es erneut'
+            isProcessingCallback.value = false
+          }
+        }, 2000)
+      }
+    } catch (e) {
+      console.error('OAuth Callback Error:', e)
+      error.value = 'Authentifizierung fehlgeschlagen'
+      isProcessingCallback.value = false
+    }
+  } else if (user.value) {
+    // User ist bereits eingeloggt, ohne code
     await navigateTo('/')
-  }
-}, { immediate: true })
-
-// Wenn User bereits eingeloggt ist (ohne code parameter)
-onMounted(() => {
-  if (user.value && !route.query.code) {
-    navigateTo('/')
   }
 })
 
