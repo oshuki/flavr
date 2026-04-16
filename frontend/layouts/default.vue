@@ -1,18 +1,23 @@
 <template>
-  <div>
-    <nav class="nav">
-      <img class="nav-logo" src="/flavr-logo-2.png" alt="Flavr">
-      <div class="nav-actions">
-        <NuxtLink to="/" class="nav-link">📖 Rezepte</NuxtLink>
-        <NuxtLink to="/ai" class="nav-link">🤖 KI-Koch</NuxtLink>
-        <NuxtLink to="/settings" class="nav-link">⚙️</NuxtLink>
-        <button v-if="user" @click="logout" class="nav-btn">Abmelden</button>
-      </div>
-    </nav>
-
-    <main>
+  <div class="app-layout">
+    <main class="main-content">
       <slot />
     </main>
+
+    <nav class="bottom-nav">
+      <NuxtLink to="/ai" class="nav-item">
+        <span class="nav-icon">🤖</span>
+        <span class="nav-label">KI-Koch</span>
+      </NuxtLink>
+      <NuxtLink to="/recipes" class="nav-item">
+        <span class="nav-icon">📖</span>
+        <span class="nav-label">Rezepte</span>
+      </NuxtLink>
+      <NuxtLink to="/settings" class="nav-item">
+        <span class="nav-icon">⚙️</span>
+        <span class="nav-label">Einstellungen</span>
+      </NuxtLink>
+    </nav>
   </div>
 </template>
 
@@ -35,52 +40,55 @@ watch(user, (newUser) => {
 </script>
 
 <style scoped>
-.nav {
+.app-layout {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 20px;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.main-content {
+  flex: 1;
+  padding-bottom: 80px; /* Space for bottom nav */
+  overflow-y: auto;
+}
+
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-around;
   background: white;
-  border-bottom: 1px solid var(--border);
-  position: sticky;
-  top: 0;
+  border-top: 1px solid var(--border);
+  padding: 8px 0 calc(8px + env(safe-area-inset-bottom));
   z-index: 100;
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.05);
 }
 
-.nav-logo {
-  height: 32px;
-}
-
-.nav-actions {
+.nav-item {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 16px;
-}
-
-.nav-link {
+  gap: 4px;
+  padding: 8px 16px;
   text-decoration: none;
-  color: var(--text);
-  font-weight: 500;
-  transition: color 0.2s;
+  color: var(--muted);
+  transition: all 0.2s;
+  min-width: 80px;
 }
 
-.nav-link:hover {
+.nav-item:hover,
+.nav-item.router-link-active {
   color: var(--primary);
 }
 
-.nav-btn {
-  background: none;
-  border: none;
-  color: var(--muted);
-  cursor: pointer;
-  font-size: 14px;
+.nav-icon {
+  font-size: 24px;
 }
 
-.nav-btn:hover {
-  color: var(--text);
-}
-
-main {
-  min-height: calc(100vh - 64px);
+.nav-label {
+  font-size: 11px;
+  font-weight: 500;
 }
 </style>

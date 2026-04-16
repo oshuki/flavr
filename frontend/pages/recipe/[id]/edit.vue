@@ -266,7 +266,7 @@ const handleSubmit = async () => {
     }
 
     await saveRecipe(recipe)
-    navigateTo('/')
+    navigateTo('/recipes')
   } catch (error) {
     console.error('Save error:', error)
     alert('Fehler beim Speichern')
@@ -277,7 +277,14 @@ const handleSubmit = async () => {
 
 const handleCancel = () => {
   if (confirm('Änderungen verwerfen?')) {
-    navigateTo(isEdit.value ? `/recipe/${route.params.id}` : '/')
+    navigateTo(isEdit.value ? `/recipe/${route.params.id}` : '/recipes')
+  }
+}
+
+// ESC key handler
+const handleKeydown = (e: KeyboardEvent) => {
+  if (e.key === 'Escape') {
+    handleCancel()
   }
 }
 
@@ -291,9 +298,17 @@ onMounted(() => {
       formData.value = { ...existing }
       tagsInput.value = existing.tags?.join(', ') || ''
     } else {
-      navigateTo('/')
+      navigateTo('/recipes')
     }
   }
+  
+  // Add ESC key listener
+  window.addEventListener('keydown', handleKeydown)
+})
+
+onUnmounted(() => {
+  // Clean up event listener
+  window.removeEventListener('keydown', handleKeydown)
 })
 </script>
 

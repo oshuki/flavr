@@ -5,7 +5,6 @@ export default defineNuxtConfig({
   modules: [
     '@nuxtjs/supabase',
     '@vite-pwa/nuxt',
-    '@pinia/nuxt',
   ],
 
   runtimeConfig: {
@@ -14,13 +13,18 @@ export default defineNuxtConfig({
 
     // Public runtime config (exposed to client)
     public: {
-      backendUrl: process.env.BACKEND_URL || 'http://localhost:3000',
-      sentryDsn: process.env.SENTRY_DSN_FRONTEND || '',
+      backendUrl: process.env.NUXT_PUBLIC_BACKEND_URL || 'http://localhost:3000',
+      sentryDsn: process.env.NUXT_PUBLIC_SENTRY_DSN || '',
+      supabase: {
+        url: process.env.NUXT_PUBLIC_SUPABASE_URL || '',
+        key: process.env.NUXT_PUBLIC_SUPABASE_KEY || '',
+      }
     }
   },
 
   supabase: {
-    // Supabase module reads from NUXT_PUBLIC_SUPABASE_URL and NUXT_PUBLIC_SUPABASE_KEY
+    url: process.env.NUXT_PUBLIC_SUPABASE_URL || '',
+    key: process.env.NUXT_PUBLIC_SUPABASE_KEY || '',
     redirectOptions: {
       login: '/auth',
       callback: '/auth/callback',
@@ -53,6 +57,4 @@ export default defineNuxtConfig({
   },
 
   devtools: { enabled: true },
-
-  css: ['~/assets/css/main.css'],
 })

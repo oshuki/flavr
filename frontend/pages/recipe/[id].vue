@@ -8,7 +8,7 @@
     <div v-else-if="!recipe" class="error-container">
       <h2>😕 Rezept nicht gefunden</h2>
       <p>Das Rezept existiert nicht oder wurde gelöscht.</p>
-      <button class="btn-primary" @click="navigateTo('/')">
+      <button class="btn-primary" @click="navigateTo('/recipes')">
         Zurück zur Übersicht
       </button>
     </div>
@@ -16,7 +16,7 @@
     <div v-else class="recipe-detail">
       <!-- Header with Image -->
       <div class="detail-header">
-        <button class="back-btn" @click="navigateTo('/')" title="Zurück">
+        <button class="back-btn" @click="navigateTo('/recipes')" title="Zurück">
           ← Zurück
         </button>
         
@@ -162,10 +162,17 @@ const handleDelete = async () => {
   
   try {
     await deleteRecipe(recipe.value.id)
-    navigateTo('/')
+    navigateTo('/recipes')
   } catch (error) {
     console.error('Delete error:', error)
     alert('Fehler beim Löschen')
+  }
+}
+
+// ESC key handler for back navigation
+const handleKeydown = (e: KeyboardEvent) => {
+  if (e.key === 'Escape') {
+    navigateTo('/recipes')
   }
 }
 
@@ -174,6 +181,14 @@ onMounted(async () => {
     await loadRecipes()
   }
   loading.value = false
+  
+  // Add ESC key listener
+  window.addEventListener('keydown', handleKeydown)
+})
+
+onUnmounted(() => {
+  // Clean up event listener
+  window.removeEventListener('keydown', handleKeydown)
 })
 </script>
 
