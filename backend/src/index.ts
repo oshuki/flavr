@@ -23,7 +23,7 @@ try {
     environment: process.env.NODE_ENV || 'development',
     tracesSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 0.0,
     integrations: [
-      new RewriteFrames({ root: globalThis?.process?.cwd() || '' }),
+      new RewriteFrames({ root: globalThis?.process?.cwd() || '' }) as any,
     ],
   })
   console.log('Sentry initialized (backend)')
@@ -59,7 +59,7 @@ app.post('/api/claude', async (c) => {
     const apiKey = process.env.CLAUDE_API_KEY
 
     if (!apiKey) {
-      return c.json({ error: 'Claude API key not configured' }, 500)
+      return c.json({ error: 'Claude API key not configured' }, 500 as any)
     }
 
     const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -74,7 +74,7 @@ app.post('/api/claude', async (c) => {
 
     if (!response.ok) {
       const error = await response.json()
-      return c.json({ error: error.error?.message || `HTTP ${response.status}` }, response.status)
+      return c.json({ error: error.error?.message || `HTTP ${response.status}` }, response.status as any)
     }
 
     const data = await response.json()
@@ -82,7 +82,7 @@ app.post('/api/claude', async (c) => {
   } catch (error) {
     console.error('Claude proxy error:', error)
     try { Sentry.captureException(error) } catch (e) {}
-    return c.json({ error: 'Internal server error', details: String(error) }, 500)
+    return c.json({ error: 'Internal server error', details: error instanceof Error ? error.message : String(error) }, 500 as any)
   }
 })
 
@@ -94,12 +94,12 @@ app.post('/api/image-proxy', async (c) => {
     const { url } = await c.req.json()
 
     if (!url || typeof url !== 'string') {
-      return c.json({ error: 'URL required' }, 400)
+      return c.json({ error: 'URL required' }, 400 as any)
     }
 
     // Security: Nur Pollinations & Google Fonts erlauben
     if (!url.includes('image.pollinations.ai') && !url.includes('fonts.googleapis')) {
-      return c.json({ error: 'URL not allowed' }, 403)
+      return c.json({ error: 'URL not allowed' }, 403 as any)
     }
 
     const response = await fetch(url, {
@@ -107,7 +107,7 @@ app.post('/api/image-proxy', async (c) => {
     })
 
     if (!response.ok) {
-      return c.json({ error: `HTTP ${response.status}` }, response.status)
+      return c.json({ error: `HTTP ${response.status}` }, response.status as any)
     }
 
     const blob = await response.arrayBuffer()
@@ -123,7 +123,7 @@ app.post('/api/image-proxy', async (c) => {
   } catch (error) {
     console.error('Image proxy error:', error)
     try { Sentry.captureException(error) } catch (e) {}
-    return c.json({ error: 'Proxy failed', details: String(error) }, 500)
+    return c.json({ error: 'Proxy failed', details: error instanceof Error ? error.message : String(error) }, 500 as any)
   }
 })
 
@@ -153,7 +153,7 @@ expressApp.use(express.json())
 expressApp.use(express.raw({ type: 'application/octet-stream' }))
 
 // Request Handler - Convertiere Express zu Hono Requests
-expressApp.use(async (req, res, next) => {
+expressApp.use(async (req: express.Request, res: express.Response, next: express.NextFunction) => {
   try {
     const url = `http://localhost:${port}${req.originalUrl}`
     
