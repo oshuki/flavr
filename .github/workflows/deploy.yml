@@ -49,6 +49,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Inject environment variables
+        run: node scripts/inject-env.js
+        env:
+          SENTRY_DSN_FRONTEND: ${{ secrets.SENTRY_DSN_FRONTEND }}
+
       - name: Deploy Frontend to Netlify
         uses: nwtgck/actions-netlify@v3.0
         with:

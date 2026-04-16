@@ -2,6 +2,8 @@ import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import express from 'express'
 import 'dotenv/config'
+import * as Sentry from '@sentry/node'
+import { RewriteFrames } from '@sentry/integrations'
 
 // Types
 interface ClaudeRequest {
@@ -13,6 +15,21 @@ interface ClaudeRequest {
 
 // App & Middleware
 const app = new Hono()
+
+// Initialize Sentry (backend)
+try {
+  Sentry.init({
+    dsn: process.env.SENTRY_DSN_BACKEND || undefined,
+    environment: process.env.NODE_ENV || 'development',
+    tracesSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 0.0,
+    integrations: [
+      new RewriteFrames({ root: globalThis?.process?.cwd() || '' }),
+    ],
+  })
+  console.log('Sentry initialized (backend)')
+} catch (e) {
+  console.warn('Sentry init failed:', e)
+}
 
 // CORS für Frontend (localhost:5173 von Vite, sowie Production)
 app.use('*', cors({
@@ -64,6 +81,7 @@ app.post('/api/claude', async (c) => {
     return c.json(data)
   } catch (error) {
     console.error('Claude proxy error:', error)
+    try { Sentry.captureException(error) } catch (e) {}
     return c.json({ error: 'Internal server error', details: String(error) }, 500)
   }
 })
@@ -104,6 +122,7 @@ app.post('/api/image-proxy', async (c) => {
     })
   } catch (error) {
     console.error('Image proxy error:', error)
+    try { Sentry.captureException(error) } catch (e) {}
     return c.json({ error: 'Proxy failed', details: String(error) }, 500)
   }
 })
@@ -166,6 +185,7 @@ expressApp.use(async (req, res, next) => {
     res.end(Buffer.from(buffer))
   } catch (err) {
     console.error('Handler error:', err)
+    try { Sentry.captureException(err) } catch (e) {}
     res.status(500).json({ error: 'Internal server error', details: String(err) })
   }
 })

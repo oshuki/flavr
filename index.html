@@ -11,6 +11,8 @@
 <link rel="manifest" href="manifest.json">
 <link rel="icon" type="image/png" href="icon-192.png">
 <link rel="apple-touch-icon" sizes="192x192" href="icon-192.png">
+<!-- Frontend Sentry DSN. Replace %SENTRY_DSN_CLIENT% during deploy with your real DSN. -->
+<meta name="sentry-dsn" content="%SENTRY_DSN_CLIENT%">
 <title>Flavr</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -358,6 +360,17 @@
   </div>
 </div>
 
+<script src="https://browser.sentry-cdn.com/7.12.0/bundle.tracing.min.js" crossorigin="anonymous"></script>
+<script>
+  (function(){
+    var meta = document.querySelector('meta[name="sentry-dsn"]');
+    var dsn = (meta && meta.content) ? meta.content : (window.__SENTRY_DSN || '');
+    if (!dsn || dsn.indexOf('%SENTRY') === 0) return;
+    if (window.Sentry && typeof window.Sentry.init === 'function') {
+      window.Sentry.init({ dsn: dsn, tracesSampleRate: 0.05 });
+    }
+  })();
+</script>
 <script src="js/app.js"></script>
 </body>
 </html>

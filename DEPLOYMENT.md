@@ -35,6 +35,7 @@ Diese GitHub Actions Workflow deployt automatisch deine App auf GitHub Push.
 
 NETLIFY_AUTH_TOKEN=<dein_token>
 NETLIFY_SITE_ID=<deine_site_id>
+SENTRY_DSN_FRONTEND=https://4227b5fc2fd69a62ae968aa19efae5c7@o4511226172145664.ingest.de.sentry.io/4511226207797328
 ```
 
 **Wie man die Site ID findet:**
@@ -62,6 +63,7 @@ NETLIFY_SITE_ID=<deine_site_id>
 # Railway Dashboard → Dein Projekt → Backend Service → Variables
 
 CLAUDE_API_KEY=<dein_echtes_key>
+SENTRY_DSN_BACKEND=https://71f10fedb606305d08ca9c024ee90ca6@o4511226172145664.ingest.de.sentry.io/4511226193903696
 PORT=3000
 NODE_ENV=production
 ```
