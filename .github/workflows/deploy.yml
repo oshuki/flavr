@@ -32,11 +32,11 @@ jobs:
       - name: Build TypeScript
         run: cd backend && npm run build
 
-      - name: Lint (ESLint)
-        run: cd backend && npm run lint --if-present || echo "No linter configured"
-
       - name: Run Tests
-        run: cd backend && npm test --if-present || echo "No tests yet"
+        run: cd backend && npm test
+
+      - name: Test Coverage
+        run: cd backend && npm run test:coverage
 
   # ═══════════════════════════════════════════════════════════════
   # DEPLOY FRONTEND (Netlify)

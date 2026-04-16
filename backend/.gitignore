@@ -6,6 +6,10 @@ dist/
 .DS_Store
 *.log
 
+# Testing
+coverage/
+.vitest/
+
 # IDE
 .vscode/
 .idea/
