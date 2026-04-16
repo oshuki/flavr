@@ -1,18 +1,15 @@
-# Netlify Deployment Configuration
+# Netlify Deployment Configuration for Nuxt 3 Frontend
 
 [build]
-  # Build script injects environment variables (like Sentry DSN)
-  command = "node scripts/inject-env.js"
-  publish = "."
+  base = "frontend"
+  command = "npm install && npm run build"
+  publish = "frontend/.output/public"
 
 # Environment variables (set in Netlify UI: Site settings → Environment variables)
 # SENTRY_DSN_FRONTEND=https://...
   
-# Redirect all non-matching requests to index.html (für SPA)
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
+# Nuxt automatically handles redirects via server routes
+# No custom redirects needed for SSR
 
 # Security Headers
 [[headers]]
