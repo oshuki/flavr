@@ -37,7 +37,7 @@ app.use('*', cors({
     'http://localhost:5173',
     'http://localhost:3000',
     'http://localhost:8080',
-    'https://flavr.example.com', // Später deine Production URL
+    'https://flavrapp.netlify.app',
   ],
   allowMethods: ['GET', 'POST', 'OPTIONS'],
   allowHeaders: ['Content-Type', 'Authorization'],
