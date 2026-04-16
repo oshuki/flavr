@@ -3,6 +3,7 @@
     <nav class="nav">
       <img class="nav-logo" src="/flavr-logo-2.png" alt="Flavr">
       <div class="nav-actions">
+        <NuxtLink to="/" class="nav-link">📖 Rezepte</NuxtLink>
         <NuxtLink to="/ai" class="nav-link">🤖 KI-Koch</NuxtLink>
         <NuxtLink to="/settings" class="nav-link">⚙️</NuxtLink>
         <button v-if="user" @click="logout" class="nav-btn">Abmelden</button>
