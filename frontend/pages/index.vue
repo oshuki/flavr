@@ -32,28 +32,13 @@
       </div>
 
       <div v-else class="recipe-grid">
-        <div
+        <RecipeCard
           v-for="recipe in filteredRecipes"
           :key="recipe.id"
-          class="recipe-card card"
+          :recipe="recipe"
           @click="navigateTo(`/recipe/${recipe.id}`)"
-        >
-          <div v-if="recipe.imageUrl" class="recipe-image">
-            <img :src="recipe.imageUrl" :alt="recipe.title">
-          </div>
-          <div class="recipe-content">
-            <h3>{{ recipe.title }}</h3>
-            <div class="recipe-meta">
-              ⏱️ {{ recipe.duration }} Min. · 👥 {{ recipe.servings }} Pers.
-            </div>
-            <button 
-              class="fav-btn"
-              @click.stop="toggleFavorite(recipe.id)"
-            >
-              {{ recipe.isFavorite ? '⭐' : '☆' }}
-            </button>
-          </div>
-        </div>
+          @toggle-fav="toggleFavorite(recipe.id)"
+        />
       </div>
 
       <button class="fab" @click="navigateTo('/recipe/new')">
@@ -154,51 +139,8 @@ onMounted(() => {
   border-radius: 12px;
   overflow: hidden;
   margin-bottom: 12px;
-}
-
-.recipe-image img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.recipe-content h3 {
-  font-size: 18px;
-  margin-bottom: 8px;
-}
-
-.recipe-meta {
-  font-size: 14px;
-  color: var(--muted);
-}
-
-.fav-btn {
-  position: absolute;
-  top: 16px;
-  right: 16px;
-  background: white;
-  border: none;
-  border-radius: 50%;
-  width: 40px;
-  height: 40px;
-  font-size: 20px;
-  cursor: pointer;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-}
-
-.fab {
-  position: fixed;
-  bottom: 24px;
-  right: 24px;
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  background: var(--primary);
-  color: white;
-  border: none;
-  font-size: 24px;
-  cursor: pointer;
-  box-shadow: 0 4px 12px rgba(255, 107, 53, 0.4);
+}300px, 1fr));
+  gap: 24px 53, 0.4);
   transition: all 0.2s;
 }
 
