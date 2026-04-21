@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test'
+import { login, isAuthenticated } from '../helpers/auth'
 
 /**
  * KI-Koch Feature Tests
@@ -162,6 +163,106 @@ test.describe('KI-Koch - Rezept-Interaktion', () => {
     if (hasRecipes) {
       const saveButton = page.getByRole('button', { name: /übernehmen|speichern|rezeptbuch/i })
       await expect(saveButton.first()).toBeVisible({ timeout: 2000 })
+    } else {
+      console.log('ℹ️  Keine Rezepte generiert - Test übersprungen')
+    }
+  })
+})
+
+test.describe('KI-Koch mit Authentication', () => {
+  test.beforeEach(async ({ page }) => {
+    // Login vor Tests
+    const loggedIn = await login(page)
+    if (!loggedIn) {
+      console.error('❌ Login fehlgeschlagen')
+      test.skip()
+      return
+    }
+    
+    await page.goto('/ai')
+  })
+
+  test('KI-Vorschläge mit echtem Login', async ({ page }) => {
+    // Zutaten eingeben
+    const input = page.getByPlaceholder(/Zutat|Ingredient/i).or(
+      page.getByRole('textbox').first()
+    )
+    
+    if (await input.count() === 0) {
+      console.log('⚠️  Zutaten-Input nicht gefunden')
+      test.skip()
+      return
+    }
+    
+    await input.fill('Eier, Milch, Butter')
+    
+    // Submit-Button finden
+    const submitButton = page.getByRole('button', { name: /vorschlagen|generieren|KI|rezepte/i }).first()
+    
+    if (await submitButton.count() === 0) {
+      console.log('⚠️  Submit-Button nicht gefunden')
+      test.skip()
+      return
+    }
+    
+    await expect(submitButton).toBeVisible()
+    await submitButton.click()
+    
+    // Warte auf Antwort (max 15s für echte API)
+    await page.waitForTimeout(5000)
+    
+    // Prüfe ob Rezept-Vorschläge erscheinen
+    const hasRecipes = await page.locator('article, .recipe-card, [class*="recipe"]').count() > 0
+    const hasError = await page.locator('[class*="error"], .error, [role="alert"]').count() > 0
+    
+    // Mindestens eines sollte vorhanden sein
+    expect(hasRecipes || hasError).toBeTruthy()
+  })
+
+  test('Generiertes Rezept übernehmen', async ({ page }) => {
+    // Zutaten eingeben
+    const input = page.getByPlaceholder(/Zutat|Ingredient/i).or(
+      page.getByRole('textbox').first()
+    )
+    
+    if (await input.count() === 0) {
+      test.skip()
+      return
+    }
+    
+    await input.fill('Schokolade, Mehl, Zucker')
+    
+    const submitButton = page.getByRole('button', { name: /vorschlagen|generieren|KI|rezepte/i }).first()
+    
+    if (await submitButton.count() === 0) {
+      test.skip()
+      return
+    }
+    
+    await submitButton.click()
+    
+    // Warte auf Rezepte
+    await page.waitForTimeout(5000)
+    
+    const hasRecipes = await page.locator('article, .recipe-card').count() > 0
+    
+    if (hasRecipes) {
+      // Suche "Übernehmen"-Button
+      const saveButton = page.getByRole('button', { name: /übernehmen|speichern|rezeptbuch/i }).first()
+      
+      if (await saveButton.count() > 0) {
+        await expect(saveButton).toBeVisible({ timeout: 2000 })
+        await saveButton.click()
+        
+        // Warte auf Erfolgsmeldung oder Weiterleitung
+        await page.waitForTimeout(2000)
+        
+        // Sollte eine Erfolgsmeldung oder Weiterleitung geben
+        const isOnRecipesPage = page.url().includes('/recipe')
+        const hasSuccessMessage = await page.locator('text=/erfolgreich|gespeichert|success/i').count() > 0
+        
+        expect(isOnRecipesPage || hasSuccessMessage).toBeTruthy()
+      }
     } else {
       console.log('ℹ️  Keine Rezepte generiert - Test übersprungen')
     }

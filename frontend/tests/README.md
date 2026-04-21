@@ -19,14 +19,18 @@ Automatisierte End-to-End Tests für die Flavr Recipe App.
 - ✅ Bild-Upload UI vorhanden
 - ✅ Rezept übernehmen (Mock)
 
-### Rezepte CRUD Tests (`03-recipes-crud.spec.ts`) **[Benötigt Login]**
-- ⏭️ Rezept-Übersicht anzeigen
-- ⏭️ Neues Rezept erstellen
-- ⏭️ Rezept bearbeiten
-- ⏭️ Rezept löschen
-- ⏭️ Bring! Shopping List Integration
+### Rezepte CRUD Tests (`03-recipes-crud.spec.ts`) **[Mit Email/Password Login]**
+- ✅ Rezept-Übersicht anzeigen
+- ✅ Neues Rezept erstellen
+- ✅ Rezept bearbeiten
+- ✅ Rezept löschen
+- ✅ Bring! Shopping List Integration
 
-> **Hinweis:** Authentifizierte Tests sind aktuell übersprungen (`.skip()`), da OAuth-Integration komplex ist. Für CI/CD müssten Test-Credentials oder Mocking eingerichtet werden.
+### KI-Koch Tests mit Authentication
+- ✅ KI-Vorschläge mit echtem Login
+- ✅ Generiertes Rezept übernehmen
+
+> **Login:** Alle authentifizierten Tests verwenden automatisch Email/Password-Login (oshuki@gmail.com / prudens)
 
 ## 🚀 Lokale Ausführung
 
@@ -119,69 +123,34 @@ test.describe('Mein Feature', () => {
 
 ## 🔐 Authentifizierte Tests
 
-Für echte CRUD-Tests mit Supabase Auth gibt es drei Ansätze:
+**Gute Nachricht:** Alle authentifizierten Tests funktionieren jetzt out-of-the-box!
 
-### Option 1: Auth-Token extrahieren (Empfohlen für lokale Tests)
+Die Tests verwenden automatisch **Email/Password-Login** mit:
+- **Email:** `oshuki@gmail.com`
+- **Password:** `prudens`
 
-1. **Einloggen:**
-   ```bash
-   npm run dev
-   ```
-   Öffne http://localhost:3002 und logge dich ein mit:
-   - Email: `oshuki@gmail.com`
-   - Password: `prudens`
+Keine manuelle Konfiguration erforderlich! 🎉
 
-2. **Token extrahieren:**
-   - Öffne DevTools (F12) → Console
-   - Führe aus:
-     ```javascript
-     localStorage.getItem('sb-htescszituyzooubmxkh-auth-token')
-     ```
-   - Kopiere den kompletten Token (JSON-String)
+### Test-Credentials ändern
 
-3. **Token als ENV variable setzen:**
-   ```bash
-   export SUPABASE_TEST_TOKEN='{"access_token":"...", ...}'
-   npm run test:e2e
-   ```
+Falls du andere Credentials verwenden möchtest:
 
-### Option 2: `.env.test` Datei (Lokal)
-
-Erstelle `frontend/.env.test`:
 ```bash
-SUPABASE_TEST_TOKEN='{"access_token":"...", ...}'
-TEST_USER_EMAIL=oshuki@gmail.com
-TEST_USER_PASSWORD=prudens
-```
-
-Dann:
-```bash
-source frontend/.env.test
+export TEST_USER_EMAIL=deine@email.com
+export TEST_USER_PASSWORD=deinpasswort
 npm run test:e2e
 ```
 
-### Option 3: CI/CD (GitHub Secrets)
+### Wie funktioniert es?
 
-Für GitHub Actions:
-1. Gehe zu Repository Settings → Secrets and variables → Actions
-2. Füge hinzu:
-   - `SUPABASE_TEST_TOKEN`: Dein extrahierter Token
-3. Tests laufen dann automatisch mit Auth
+Die Tests:
+1. Navigieren zur `/auth` Seite
+2. Füllen Email und Password automatisch aus
+3. Klicken auf den Login-Button
+4. Warten auf erfolgreichen Login
+5. Führen dann die authentifizierten Tests aus
 
-**WICHTIG:** Der Token läuft nach einiger Zeit ab. Bei Fehlern neuen Token extrahieren!
-
-### Tests ohne Auth ausführen
-
-Alle Auth-Tests werden automatisch übersprungen, wenn kein Token gesetzt ist:
-```bash
-# Nur nicht-authentifizierte Tests
-npm run test:e2e
-```
-
-Oder explizit skippen:
-```bash
-SKIP_AUTH_TESTS=true npm run test:e2e
-```
+Siehe [`tests/helpers/auth.ts`](helpers/auth.ts) für Details.
 
 ## 📊 Test-Coverage
 

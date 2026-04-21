@@ -2,7 +2,7 @@ import { Page } from '@playwright/test'
 
 /**
  * Auth Helper für E2E Tests
- * Handles Supabase Google OAuth Login
+ * Handles Supabase Email/Password Login
  */
 
 export const TEST_CREDENTIALS = {
@@ -11,13 +11,8 @@ export const TEST_CREDENTIALS = {
 }
 
 /**
- * Login via Supabase
- * WICHTIG: Funktioniert nur mit Email/Password Auth, nicht mit OAuth
- * 
- * Für OAuth-Tests müsste man:
- * 1. Supabase Test-Token generieren
- * 2. Direkt localStorage setzen
- * 3. Oder OAuth-Flow mocken
+ * Login via Supabase Email/Password
+ * Verwendet Email + Passwort statt OAuth für Tests
  */
 export async function login(page: Page): Promise<boolean> {
   try {
@@ -25,30 +20,50 @@ export async function login(page: Page): Promise<boolean> {
     await page.goto('/auth')
     
     // Prüfe ob bereits eingeloggt
-    const isLoggedIn = await page.evaluate(() => {
-      const session = localStorage.getItem('sb-htescszituyzooubmxkh-auth-token')
-      return session !== null
-    })
-    
+    const isLoggedIn = await isAuthenticated(page)
     if (isLoggedIn) {
       console.log('✓ Bereits eingeloggt')
       return true
     }
     
-    // Google OAuth Button klicken
-    const googleButton = page.getByRole('button', { name: /Google|Anmelden/i })
-    await googleButton.click()
+    // Suche Email-Input Feld
+    const emailInput = page.locator('input[type="email"]').or(
+      page.getByPlaceholder(/email/i)
+    ).or(
+      page.getByLabel(/email/i)
+    )
     
-    // Warte auf Weiterleitung oder Email-Input
-    // Da wir Google OAuth haben, können wir nicht direkt Email/Password eingeben
-    // Für echte Tests müssten wir:
-    // 1. Supabase Auth-Token manuell setzen
-    // 2. Oder einen Test-Account mit Email/Password Auth anlegen
+    // Warte auf das Email-Feld
+    await emailInput.waitFor({ timeout: 5000 })
+    await emailInput.fill(TEST_CREDENTIALS.email)
     
-    console.warn('⚠️  OAuth-Login in Tests nicht vollständig implementiert')
-    console.warn('   Für echte Auth-Tests: Supabase Test-Token im localStorage setzen')
+    // Suche Password-Input Feld
+    const passwordInput = page.locator('input[type="password"]').or(
+      page.getByPlaceholder(/password|passwort/i)
+    ).or(
+      page.getByLabel(/password|passwort/i)
+    )
     
-    return false
+    await passwordInput.fill(TEST_CREDENTIALS.password)
+    
+    // Login-Button klicken
+    const loginButton = page.getByRole('button', { name: /anmelden|login|sign in/i }).first()
+    await loginButton.click()
+    
+    // Warte auf erfolgreichen Login (Weiterleitung)
+    await page.waitForURL(/\/(recipes|$)/, { timeout: 10000 })
+    
+    // Verifiziere dass wir eingeloggt sind
+    await page.waitForTimeout(1000)
+    const loggedIn = await isAuthenticated(page)
+    
+    if (loggedIn) {
+      console.log('✓ Login erfolgreich')
+      return true
+    } else {
+      console.error('✗ Login fehlgeschlagen - kein Auth-Token gefunden')
+      return false
+    }
   } catch (error) {
     console.error('Login fehlgeschlagen:', error)
     return false
@@ -59,10 +74,14 @@ export async function login(page: Page): Promise<boolean> {
  * Logout
  */
 export async function logout(page: Page): Promise<void> {
-  await page.evaluate(() => {
-    localStorage.clear()
-    sessionStorage.clear()
-  })
+  try {
+    await page.evaluate(() => {
+      localStorage.clear()
+      sessionStorage.clear()
+    })
+  } catch (e) {
+    // Ignore localStorage errors
+  }
   await page.goto('/')
 }
 
@@ -84,9 +103,14 @@ export async function setAuthToken(page: Page, token?: string): Promise<void> {
   
   await page.goto('/')
   
-  await page.evaluate((tokenData) => {
-    localStorage.setItem('sb-htescszituyzooubmxkh-auth-token', tokenData)
-  }, authToken)
+  try {
+    await page.evaluate((tokenData) => {
+      localStorage.setItem('sb-htescszituyzooubmxkh-auth-token', tokenData)
+    }, authToken)
+  } catch (e) {
+    console.warn('⚠️  Konnte Auth-Token nicht setzen:', e)
+    return
+  }
   
   // Reload um Auth-State zu aktivieren
   await page.reload()
@@ -96,8 +120,13 @@ export async function setAuthToken(page: Page, token?: string): Promise<void> {
  * Prüft ob User eingeloggt ist
  */
 export async function isAuthenticated(page: Page): Promise<boolean> {
-  return await page.evaluate(() => {
-    const token = localStorage.getItem('sb-htescszituyzooubmxkh-auth-token')
-    return token !== null && token !== ''
-  })
+  try {
+    return await page.evaluate(() => {
+      const token = localStorage.getItem('sb-htescszituyzooubmxkh-auth-token')
+      return token !== null && token !== ''
+    })
+  } catch (e) {
+    // localStorage nicht verfügbar (CORS/Security)
+    return false
+  }
 }
