@@ -59,8 +59,8 @@ npx playwright test 01-smoke.spec.ts
 # Terminal 1: Dev-Server starten
 npm run dev
 
-# Terminal 2: Tests ausführen
-PLAYWRIGHT_TEST_BASE_URL=http://localhost:3002 npm run test:e2e
+# Terminal 2: Tests ausführen (läuft automatisch gegen localhost:3002)
+npm run test:e2e
 ```
 
 ### Test-Report anzeigen
