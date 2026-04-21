@@ -8,7 +8,7 @@ import { RewriteFrames } from '@sentry/integrations'
 // Types
 interface ClaudeRequest {
   model: string
-  system: string
+  system?: string
   messages: Array<{ role: string; content: any[] | string }>
   max_tokens: number
 }
@@ -59,9 +59,91 @@ app.post('/api/claude', async (c) => {
   try {
     const body: ClaudeRequest = await c.req.json()
     const apiKey = process.env.CLAUDE_API_KEY
+    const useMock = process.env.USE_MOCK_AI === 'true' || !apiKey
 
+    if (useMock) {
+      // Mock mode for testing without API key
+      console.log('🤖 Using mock AI (no API key or USE_MOCK_AI=true)')
+      
+      const userMessage = body.messages[0]?.content
+      const isArray = Array.isArray(userMessage)
+      const textContent = isArray 
+        ? userMessage.find((c: any) => c.type === 'text')?.text 
+        : userMessage
+      
+      // Detect request type
+      if (textContent?.includes('ingredients:')) {
+        // Recipe suggestions
+        return c.json({
+          content: [{
+            type: 'text',
+            text: JSON.stringify([
+              {
+                title: 'Klassisches Rührei',
+                ingredients: ['3 Eier', '50ml Milch', 'Salz', 'Pfeffer', '1 EL Butter'],
+                steps: [
+                  'Eier mit Milch verquirlen',
+                  'Mit Salz und Pfeffer würzen',
+                  'Butter in der Pfanne erhitzen',
+                  'Eiermasse hinzugeben und bei mittlerer Hitze stocken lassen',
+                  'Dabei ständig rühren'
+                ],
+                duration: 10,
+                servings: 2
+              },
+              {
+                title: 'Käse-Omelett',
+                ingredients: ['3 Eier', '50g geriebener Käse', 'Salz', 'Pfeffer', '1 EL Öl'],
+                steps: [
+                  'Eier verquirlen und würzen',
+                  'Öl in der Pfanne erhitzen',
+                  'Eiermasse hineingeben',
+                  'Käse darüber streuen',
+                  'Zusammenklappen und servieren'
+                ],
+                duration: 15,
+                servings: 2
+              },
+              {
+                title: 'Eier-Käse-Toast',
+                ingredients: ['2 Eier', '2 Scheiben Toast', '50g Käse', 'Butter'],
+                steps: [
+                  'Toast toasten',
+                  'Eier braten',
+                  'Käse auf Toast legen',
+                  'Eier darauf setzen',
+                  'Mit Käse überbacken'
+                ],
+                duration: 12,
+                servings: 1
+              }
+            ])
+          }]
+        })
+      } else if (isArray && userMessage.some((c: any) => c.type === 'image')) {
+        // Image analysis
+        return c.json({
+          content: [{
+            type: 'text',
+            text: JSON.stringify({
+              ingredients: ['Tomaten', 'Zwiebeln', 'Knoblauch', 'Olivenöl']
+            })
+          }]
+        })
+      } else {
+        // Generic response
+        return c.json({
+          content: [{
+            type: 'text',
+            text: '{"title": "Mock Rezept", "ingredients": ["Zutat 1"], "steps": ["Schritt 1"], "duration": 30, "servings": 2}'
+          }]
+        })
+      }
+    }
+
+    // Real API call
     if (!apiKey) {
-      return c.json({ error: 'Claude API key not configured' }, 500 as any)
+      return c.json({ error: 'Claude API key not configured. Set USE_MOCK_AI=true for testing.' }, 500 as any)
     }
 
     const response = await fetch('https://api.anthropic.com/v1/messages', {

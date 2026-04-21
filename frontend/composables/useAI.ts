@@ -8,7 +8,7 @@ export const useAI = () => {
     const response = await $fetch(`${backendUrl}/api/claude`, {
       method: 'POST',
       body: {
-        model: 'claude-3-5-sonnet-20241022',
+        model: 'claude-3-5-sonnet-20240620',
         max_tokens: 2000,
         messages
       }
