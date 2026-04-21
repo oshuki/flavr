@@ -7,7 +7,11 @@
     "dev": "PORT=3002 nuxt dev",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
-    "postinstall": "nuxt prepare"
+    "postinstall": "nuxt prepare",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:report": "playwright show-report playwright-report"
   },
   "dependencies": {
     "@nuxtjs/supabase": "^2.0.5",
@@ -18,5 +22,8 @@
     "pinia": "^3.0.4",
     "vue": "^3.5.32",
     "vue-router": "^5.0.4"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.59.1"
   }
 }

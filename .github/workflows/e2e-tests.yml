@@ -1,0 +1,121 @@
+name: E2E Tests
+
+on:
+  # Trigger bei Push auf main/nuxt_js Branch
+  push:
+    branches: [main, nuxt_js]
+  
+  # Trigger bei Pull Requests
+  pull_request:
+    branches: [main, nuxt_js]
+  
+  # Manueller Trigger
+  workflow_dispatch:
+    inputs:
+      test_url:
+        description: 'Test gegen diese URL (default: production)'
+        required: false
+        default: 'https://flavr-nuxt.pages.dev'
+
+jobs:
+  test:
+    name: Playwright E2E Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+      
+      - name: Install Dependencies
+        working-directory: frontend
+        run: npm ci
+      
+      - name: Install Playwright Browsers
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+      
+      - name: Run Playwright Tests (Production)
+        working-directory: frontend
+        env:
+          PLAYWRIGHT_TEST_BASE_URL: ${{ github.event.inputs.test_url || 'https://flavr-nuxt.pages.dev' }}
+          SUPABASE_TEST_TOKEN: ${{ secrets.SUPABASE_TEST_TOKEN }}
+          TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL || 'oshuki@gmail.com' }}
+          TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD || 'prudens' }}
+        run: npm run test:e2e
+        continue-on-error: true
+      
+      - name: Upload Test Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: frontend/playwright-report/
+          retention-days: 7
+      
+      - name: Upload Test Videos
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-videos
+          path: frontend/test-results/
+          retention-days: 3
+
+  # Optionaler Job: Lokale Dev-Server Tests
+  test-dev:
+    name: Playwright Tests (Dev Server)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # Nur bei manueller Ausführung oder auf nuxt_js Branch
+    if: github.ref == 'refs/heads/nuxt_js' || github.event_name == 'workflow_dispatch'
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+      
+      - name: Install Dependencies
+        working-directory: frontend
+        run: npm ci
+      
+      - name: Install Playwright Browsers
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+      
+      - name: Build Frontend
+        working-directory: frontend
+        run: npm run generate
+      
+      - name: Start Dev Server
+        working-directory: frontend
+        run: |
+          npx serve .output/public -p 3000 &
+          sleep 5
+      
+      - name: Run Playwright Tests (Dev)
+        working-directory: frontend
+        env:
+          PLAYWRIGHT_TEST_BASE_URL: 'http://localhost:3000'
+        run: npm run test:e2e
+        continue-on-error: true
+      
+      - name: Upload Test Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-dev
+          path: frontend/playwright-report/
+          retention-days: 7
