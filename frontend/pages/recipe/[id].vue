@@ -101,7 +101,11 @@
         <button class="btn-secondary" @click="editRecipe">
           ✏️ Bearbeiten
         </button>
-        <button class="btn-secondary" @click="duplicateRecipe">
+        <button 
+          v-if="recipe.sourceApp !== 'KI-Koch'"
+          class="btn-secondary" 
+          @click="duplicateRecipe"
+        >
           📋 Duplizieren
         </button>
         <button class="btn-secondary btn-danger" @click="confirmDelete">
