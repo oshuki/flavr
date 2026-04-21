@@ -1,0 +1,7 @@
+name = "flavr"
+pages_build_output_dir = "frontend/.output/public"
+
+[build]
+command = "cd frontend && npm ci && npm run generate"
+
+[env.production]
