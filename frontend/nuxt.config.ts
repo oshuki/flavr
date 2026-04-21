@@ -62,33 +62,63 @@ export default defineNuxtConfig({
 
   pwa: {
     registerType: 'autoUpdate',
+    includeAssets: ['favicon.ico', 'icon-192.png', 'icon-512.png'],
     devOptions: {
-      enabled: true,
-      type: 'module',
+      enabled: false, // Disable in dev, only production
     },
+    strategies: 'generateSW',
     manifest: {
-      name: 'Flavr',
+      name: 'Flavr - Rezeptverwaltung',
       short_name: 'Flavr',
-      description: 'Deine persönliche Rezeptverwaltung',
-      theme_color: '#FFF6EE',
+      description: 'Deine persönliche Rezeptverwaltung mit KI-Unterstützung',
+      theme_color: '#1C1917',
       background_color: '#ffffff',
       display: 'standalone',
+      orientation: 'portrait',
+      start_url: '/',
+      scope: '/',
       icons: [
         { 
           src: '/icon-192.png', 
           sizes: '192x192', 
-          type: 'image/png' 
+          type: 'image/png',
+          purpose: 'any maskable'
         },
         { 
           src: '/icon-512.png', 
           sizes: '512x512', 
-          type: 'image/png' 
+          type: 'image/png',
+          purpose: 'any maskable'
         }
       ]
     },
     workbox: {
       navigateFallback: '/',
-      globPatterns: ['**/*.{js,css,html,png,svg,ico}'],
+      globPatterns: ['**/*.{js,css,html,png,svg,ico,json}'],
+      runtimeCaching: [
+        {
+          urlPattern: /^https:\/\/htescszituyzooubmxkh\.supabase\.co\/.*/i,
+          handler: 'NetworkFirst',
+          options: {
+            cacheName: 'supabase-cache',
+            expiration: {
+              maxEntries: 50,
+              maxAgeSeconds: 60 * 60 * 24 // 24 hours
+            }
+          }
+        },
+        {
+          urlPattern: /^https:\/\/.*\.railway\.app\/.*/i,
+          handler: 'NetworkFirst',
+          options: {
+            cacheName: 'api-cache',
+            expiration: {
+              maxEntries: 50,
+              maxAgeSeconds: 60 * 5 // 5 minutes
+            }
+          }
+        }
+      ]
     }
   },
 
