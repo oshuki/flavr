@@ -57,6 +57,21 @@ export default defineNuxtConfig({
       login: '/auth',
       callback: '/auth/callback',
       exclude: [],
+    },
+    cookieOptions: {
+      maxAge: 60 * 60 * 24 * 365, // 1 year
+      sameSite: 'lax',
+      secure: true
+    },
+    clientOptions: {
+      auth: {
+        flowType: 'pkce',
+        detectSessionInUrl: true,
+        persistSession: true,
+        autoRefreshToken: true,
+        storage: process.client ? window.localStorage : undefined,
+        storageKey: 'sb-auth-token',
+      }
     }
   },
 

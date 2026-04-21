@@ -20,7 +20,25 @@ const route = useRoute()
 // Process OAuth callback
 onMounted(async () => {
   try {
-    // Get code and state from URL
+    // First, check if user is already logged in (auto-detected by supabase)
+    if (user.value) {
+      console.log('User already authenticated:', user.value.id)
+      message.value = 'Erfolgreich angemeldet! Weiterleitung...'
+      await navigateTo('/')
+      return
+    }
+
+    // Wait a bit for auto-detection
+    await new Promise(resolve => setTimeout(resolve, 500))
+    
+    if (user.value) {
+      console.log('User authenticated after wait:', user.value.id)
+      message.value = 'Erfolgreich angemeldet! Weiterleitung...'
+      await navigateTo('/')
+      return
+    }
+
+    // Manual code exchange if auto-detection didn't work
     const code = route.query.code as string
     
     if (!code) {
@@ -30,7 +48,7 @@ onMounted(async () => {
       return
     }
 
-    console.log('Processing OAuth callback with code:', code.substring(0, 10) + '...')
+    console.log('Manually exchanging OAuth code:', code.substring(0, 10) + '...')
     
     // Exchange code for session
     const { data, error } = await client.auth.exchangeCodeForSession(code)
