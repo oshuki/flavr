@@ -5,6 +5,15 @@ export default defineNuxtConfig({
   // Disable SSR for SPA mode - fixes IPC errors
   ssr: false,
   
+  // Nitro preset for static generation
+  nitro: {
+    preset: 'static',
+    prerender: {
+      crawlLinks: true,
+      routes: ['/'],
+    }
+  },
+  
   app: {
     head: {
       link: [
