@@ -48,7 +48,7 @@
           :disabled="ingredients.length === 0 || loading"
           @click="getSuggestions"
         >
-          {{ loading ? '🤔 KI denkt nach...' : '✨ Rezepte vorschlagen' }}
+          {{ loading ? '🤔 KI denkt nach...' : '✨ Rezepte vorschlagen (für 4 Personen)' }}
         </button>
         
         <button
@@ -134,8 +134,9 @@
             <button
               class="btn-primary"
               @click="createFromSuggestion(index)"
+              :disabled="loading"
             >
-              ✅ Rezept speichern
+              📝 Übernehmen & in Rezeptbuch speichern
             </button>
           </div>
         </div>
@@ -314,8 +315,8 @@ const createFromSuggestion = async (index: number) => {
       }
     }
     
-    // Parse servings: extract number
-    let servings = 2
+    // Parse servings: extract number (default 4 for families)
+    let servings = 4
     if (typeof suggestion.servings === 'number') {
       servings = suggestion.servings
     } else if (typeof suggestion.servings === 'string') {
@@ -341,11 +342,16 @@ const createFromSuggestion = async (index: number) => {
 
     await saveRecipe(recipe)
     
-    // Navigate to recipe detail
-    navigateTo(`/recipe/${recipe.id}`)
+    // Show success message
+    loadingMessage.value = '✅ Rezept gespeichert!'
+    setTimeout(() => {
+      loadingMessage.value = ''
+      // Navigate to recipe detail
+      navigateTo(`/recipe/${recipe.id}`)
+    }, 1000)
   } catch (e: any) {
     console.error('Save error:', e)
-    alert('Fehler beim Speichern des Rezepts')
+    error.value = 'Fehler beim Speichern des Rezepts. Bitte versuche es erneut.'
   }
 }
 </script>

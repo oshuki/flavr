@@ -38,22 +38,24 @@ export const useAI = () => {
 
   const suggestRecipes = async (ingredients: string[]): Promise<AIRecipeSuggestion[]> => {
     const ingredientsText = ingredients.join(', ')
-    const systemPrompt = `Given these ingredients: ${ingredientsText}, suggest 3 recipes in German.
+    const systemPrompt = `Given these ingredients: ${ingredientsText}, suggest 3 recipes in German for 4 people.
 
 IMPORTANT: Return ONLY a JSON array (no markdown, no text). Use this exact format:
 [{
   "title": "Recipe name",
-  "ingredients": ["ingredient 1", "ingredient 2"],
+  "ingredients": ["200g ingredient 1", "3 EL ingredient 2", "1 Prise ingredient 3"],
   "steps": ["step 1", "step 2"],
   "duration": 30,
-  "servings": 2
+  "servings": 4
 }]
 
 Rules:
 - duration must be a NUMBER (minutes as integer)
-- servings must be a NUMBER (integer)
+- servings must be a NUMBER (integer, default 4)
+- ingredients must include QUANTITIES (e.g., "200g Mehl", "3 Eier", "1 TL Salz", "2 EL Öl")
 - Write in German
-- Return 3 different recipes`
+- Return 3 different recipes
+- Always for 4 people unless ingredients are clearly limited`
     
     const response = await callClaude([
       { role: 'user', content: systemPrompt }
