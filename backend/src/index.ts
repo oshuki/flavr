@@ -40,6 +40,7 @@ app.use('*', cors({
     'http://localhost:3002',
     'http://localhost:8080',
     'https://flavrapp.netlify.app',
+    'https://flavr.pages.dev',
   ],
   allowMethods: ['GET', 'POST', 'OPTIONS'],
   allowHeaders: ['Content-Type', 'Authorization'],
