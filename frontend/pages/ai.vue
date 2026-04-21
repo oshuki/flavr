@@ -151,23 +151,6 @@
           <li>Nutze die Kamera-Funktion, um Zutaten aus einem Foto zu erkennen</li>
         </ul>
       </div>
-const newIngredient = ref('')
-
-const addIngredient = () => {
-  const value = newIngredient.value.trim()
-  if (!value) return
-  
-  // Split by comma if multiple ingredients
-  const items = value.split(',').map(i => i.trim()).filter(i => i)
-  if (items.length > 0) {
-    ingredients.value = [...ingredients.value, ...items]
-    newIngredient.value = ''
-  }
-}
-
-const removeIngredient = (index: number) => {
-  ingredients.value.splice(index, 1)
-}
     </div>
   </div>
 </template>
@@ -185,6 +168,23 @@ const loading = ref(false)
 const loadingMessage = ref('')
 const error = ref('')
 const photoInput = ref<HTMLInputElement>()
+const newIngredient = ref('')
+
+const addIngredient = () => {
+  const value = newIngredient.value.trim()
+  if (!value) return
+  
+  // Split by comma if multiple ingredients
+  const items = value.split(',').map(i => i.trim()).filter(i => i)
+  if (items.length > 0) {
+    ingredients.value = [...ingredients.value, ...items]
+    newIngredient.value = ''
+  }
+}
+
+const removeIngredient = (index: number) => {
+  ingredients.value.splice(index, 1)
+}
 
 const getSuggestions = async () => {
   if (ingredients.value.length === 0) return
