@@ -104,7 +104,8 @@ const handleAuth = async () => {
   }
 }
 
-coloading.value = true
+const signInWithGoogle = async () => {
+  loading.value = true
   error.value = ''
   
   try {
@@ -121,8 +122,7 @@ coloading.value = true
     // Wird zu Google redirected, loading bleibt true
   } catch (e: any) {
     error.value = e.message || 'Google Login fehlgeschlagen'
-    loading.value = fals
-    error.value = googleError.message
+    loading.value = false
   }
 }
 </script>
