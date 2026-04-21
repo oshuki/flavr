@@ -1,3 +1,130 @@
+# 🍳 Flavr Recipe App - Projekt Status
+
+**Stand:** 22. April 2026  
+**Status:** ✅ Production Ready  
+**Branch:** nuxt_js
+
+---
+
+## 🌐 Production Deployment
+
+| Service | URL | Status |
+|---------|-----|--------|
+| Frontend | https://flavr-nuxt.pages.dev | ✅ Live |
+| Backend | https://flavr-production.up.railway.app | ✅ Live |
+| Database | Supabase | ✅ Aktiv |
+
+---
+
+## 🎯 Features
+
+### ✅ Implementiert
+- [x] **Rezepte CRUD** - Erstellen, Bearbeiten, Löschen, Anzeigen
+- [x] **KI-Koch** - Rezeptvorschläge basierend auf Zutaten (Claude API)
+- [x] **Foto-Analyse** - Zutaten aus Bildern erkennen
+- [x] **Bring! Integration** - Shopping List Export
+- [x] **Google OAuth** - Login mit Google Account
+- [x] **Email/Password Login** - Für Tests und Entwicklung
+- [x] **Bildgenerierung** - AI-generierte Rezeptbilder (Pollinations)
+- [x] **PWA** - Installierbar auf Mobilgeräten
+- [x] **Responsive Design** - Mobile & Desktop optimiert
+
+### 🧪 Testing
+- [x] **Playwright E2E Tests** - 20 Tests implementiert (alle passing!)
+- [x] **GitHub Actions CI/CD** - Auto-Tests bei jedem Push
+- [x] **Auto-Login** - Email/Password für Test-Automation
+
+### 📋 Noch offen (Optional)
+
+#### High Priority
+- [ ] Monitoring Dashboard einrichten (Sentry richtig konfigurieren)
+- [ ] Custom Domain statt .pages.dev
+- [ ] Rate Limiting für Claude API
+- [ ] Backup-Strategie für Supabase
+
+#### Nice-to-Have Features
+- [ ] Dark Mode
+- [ ] Rezepte teilen (Social Share Buttons)
+- [ ] Rezept-Favoriten & Bewertungen
+- [ ] Suchfunktion verbessern (Fulltext-Suche)
+- [ ] Tags/Labels für Rezepte
+- [ ] Nährwerte-Berechnung via KI
+- [ ] Meal Planning / Wochenplan
+- [ ] Rezept-Import via URL
+
+#### Cleanup
+- [ ] Netlify Deployment löschen (nicht mehr benötigt)
+- [ ] ANTHROPIC_API_KEY auf Railway entfernen (Duplikat)
+
+---
+
+## 🔧 Tech Stack
+
+**Frontend:** Nuxt 4.4.2 (SPA Mode) → Cloudflare Pages  
+**Backend:** Express + Hono → Railway  
+**Database:** Supabase (PostgreSQL + Auth)  
+**AI:** Claude 4.6 Sonnet, Pollinations  
+**Testing:** Playwright E2E  
+
+---
+
+## 🚀 Schnellstart
+
+### Entwicklung lokal
+
+```bash
+# Frontend (Port 3002)
+cd frontend && npm run dev
+
+# Backend (Port 3000)
+cd backend && npm run dev
+
+# Tests
+cd frontend && npm run test:e2e:ui
+```
+
+**Test-Credentials:** oshuki@gmail.com / prudens
+
+---
+
+## 📊 Test Coverage
+
+✅ **20 Tests - Alle passing!**
+
+- 9 Smoke Tests (Homepage, Navigation, PWA)
+- 4 AI-Chef Tests (ohne Login)
+- 2 AI-Chef Tests (mit Login)  
+- 5 CRUD Tests (Rezepte, Bring!)
+
+---
+
+## 🔑 Environment Variables
+
+**Lokal:** Siehe `.env` Dateien  
+**Railway:** CLAUDE_API_KEY, NODE_ENV=production  
+**Cloudflare:** Keine (Statisches Build)
+
+---
+
+## 📈 Kosten & Limits
+
+| Service | Kosten |
+|---------|--------|
+| Cloudflare Pages | $0 (Unlimited) |
+| Railway | ~$5/Monat |
+| Supabase | $0 (Free Tier) |
+| Claude API | ~$15 Credits verfügbar |
+
+---
+
+## 📚 Weitere Docs
+
+- Tests: `frontend/tests/README.md`
+- Detaillierter Status: `/memories/repo/flavr-project-status.md`
+
+---
+
+🎉 **Projekt vollständig getestet und deployed!**
 # 🍳 Flavr - Projekt Status & Fortschritt
 
 **Stand:** 16. April 2026  
