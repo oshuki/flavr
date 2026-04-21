@@ -1,0 +1,7 @@
+
+
+Backend DSN
+https://71f10fedb606305d08ca9c024ee90ca6@o4511226172145664.ingest.de.sentry.io/4511226193903696
+
+Frontend DSN
+https://4227b5fc2fd69a62ae968aa19efae5c7@o4511226172145664.ingest.de.sentry.io/4511226207797328

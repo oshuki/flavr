@@ -41,7 +41,7 @@
         />
       </div>
 
-      <button class="fab" @click="navigateTo('/recipe/new')">
+      <button class="fab" @click="createNewRecipe">
         ✚
       </button>
     </div>
@@ -54,6 +54,12 @@ const { categories, emoji, activeCategory, setCategory } = useCategories()
 
 const searchQuery = ref('')
 const onlyFavs = ref(false)
+
+const createNewRecipe = () => {
+  // Generate UUID for new recipe (browser API, works in SPA mode)
+  const newId = crypto.randomUUID()
+  navigateTo(`/recipe/edit/${newId}`)
+}
 
 const filteredRecipes = computed(() => {
   return recipes.value.filter(r => {

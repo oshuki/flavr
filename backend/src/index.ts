@@ -36,6 +36,8 @@ app.use('*', cors({
   origin: [
     'http://localhost:5173',
     'http://localhost:3000',
+    'http://localhost:3001',
+    'http://localhost:3002',
     'http://localhost:8080',
     'https://flavrapp.netlify.app',
   ],
@@ -128,11 +130,132 @@ app.post('/api/image-proxy', async (c) => {
 })
 
 // ══════════════════════════════════════════════════════════════
-// BRING! API PROXY (falls implementiert)
+// BRING! API PROXY - Shopping List Integration
 // ══════════════════════════════════════════════════════════════
-app.post('/api/bring/*', async (c) => {
-  // Platzhalter – kommt später wenn Bring integriert ist
-  return c.json({ message: 'Bring integration coming soon' }, 501)
+const BRING_API = 'https://api.getbring.com/rest/v2'
+const BRING_HEADERS_BASE = {
+  'X-BRING-API-KEY': 'cof4Nc6D8saplXjE3h3HXqHH8m7VU2i1Gs0g85Sp',
+  'X-BRING-CLIENT': 'webApp',
+  'X-BRING-CLIENT-SOURCE': 'webApp',
+  'X-BRING-COUNTRY': 'DE',
+}
+
+// Login to Bring!
+app.post('/api/bring/login', async (c) => {
+  try {
+    const { email, password } = await c.req.json()
+
+    if (!email || !password) {
+      return c.json({ error: 'Email und Passwort erforderlich' }, 400 as any)
+    }
+
+    const response = await fetch(`${BRING_API}/bringauth`, {
+      method: 'POST',
+      body: new URLSearchParams({ email, password }),
+    })
+
+    const text = await response.text()
+    let data: any
+
+    try {
+      data = JSON.parse(text)
+    } catch {
+      return c.json({ error: `Bring API Fehler (${response.status}): ${text}` }, 401 as any)
+    }
+
+    if (!response.ok || data.error) {
+      return c.json({ error: data.message || 'Login fehlgeschlagen' }, 401 as any)
+    }
+
+    return c.json(data)
+  } catch (error) {
+    console.error('Bring login error:', error)
+    try { Sentry.captureException(error) } catch (e) {}
+    return c.json({ error: 'Login fehlgeschlagen', details: error instanceof Error ? error.message : String(error) }, 500 as any)
+  }
+})
+
+// Get shopping lists
+app.post('/api/bring/lists', async (c) => {
+  try {
+    const { token, uuid } = await c.req.json()
+
+    if (!token || !uuid) {
+      return c.json({ error: 'Token und UUID erforderlich' }, 400 as any)
+    }
+
+    const response = await fetch(`${BRING_API}/bringusers/${uuid}/lists`, {
+      headers: {
+        ...BRING_HEADERS_BASE,
+        'Authorization': `Bearer ${token}`,
+        'X-BRING-USER-UUID': uuid,
+      },
+    })
+
+    const text = await response.text()
+    let data: any
+
+    try {
+      data = JSON.parse(text)
+    } catch {
+      return c.json({ error: `Bring API Fehler (${response.status}): ${text}` }, 500 as any)
+    }
+
+    if (!response.ok) {
+      return c.json({ error: 'Listen konnten nicht geladen werden' }, response.status as any)
+    }
+
+    return c.json(data)
+  } catch (error) {
+    console.error('Bring lists error:', error)
+    try { Sentry.captureException(error) } catch (e) {}
+    return c.json({ error: 'Fehler beim Laden der Listen', details: error instanceof Error ? error.message : String(error) }, 500 as any)
+  }
+})
+
+// Add items to list
+app.post('/api/bring/items', async (c) => {
+  try {
+    const { token, uuid, listId, items } = await c.req.json()
+
+    if (!token || !uuid || !listId || !items || !Array.isArray(items)) {
+      return c.json({ error: 'Token, UUID, listId und items array erforderlich' }, 400 as any)
+    }
+
+    const results = []
+
+    for (const item of items) {
+      const { name, spec = '' } = item
+      if (!name) continue
+
+      const body = `purchase=${encodeURIComponent(name)}&specification=${encodeURIComponent(spec)}&remove=`
+
+      const response = await fetch(`${BRING_API}/bringlists/${listId}`, {
+        method: 'PUT',
+        headers: {
+          ...BRING_HEADERS_BASE,
+          'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+          'Authorization': `Bearer ${token}`,
+          'X-BRING-USER-UUID': uuid,
+        },
+        body,
+      })
+
+      results.push({ name, ok: response.ok, status: response.status })
+    }
+
+    const allSuccess = results.every(r => r.ok)
+
+    return c.json({ 
+      success: allSuccess,
+      results,
+      message: allSuccess ? 'Alle Artikel hinzugefügt' : 'Einige Artikel konnten nicht hinzugefügt werden'
+    })
+  } catch (error) {
+    console.error('Bring add items error:', error)
+    try { Sentry.captureException(error) } catch (e) {}
+    return c.json({ error: 'Fehler beim Hinzufügen', details: error instanceof Error ? error.message : String(error) }, 500 as any)
+  }
 })
 
 // ══════════════════════════════════════════════════════════════

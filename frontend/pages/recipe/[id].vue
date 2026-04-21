@@ -87,6 +87,17 @@
 
       <!-- Actions -->
       <div class="detail-actions">
+        <ClientOnly>
+          <button
+            v-if="bringConnected && selectedList"
+            class="btn-primary"
+            @click="exportToBring"
+            :disabled="exportingToBring"
+          >
+            {{ exportingToBring ? '📤 Exportiere...' : '🛒 Zu Bring! hinzufügen' }}
+          </button>
+        </ClientOnly>
+        
         <button class="btn-secondary" @click="editRecipe">
           ✏️ Bearbeiten
         </button>
@@ -124,8 +135,19 @@ const route = useRoute()
 const { recipes, loadRecipes, deleteRecipe, toggleFavorite } = useRecipes()
 const { emoji } = useCategories()
 
+// Bring! composable
+const {
+  isConnected: bringConnected,
+  selectedList,
+  bringAddItems,
+  loadBringData,
+} = useBring()
+
 const loading = ref(true)
 const showDeleteModal = ref(false)
+const exportingToBring = ref(false)
+
+
 
 const recipe = computed(() => {
   const id = route.params.id as string
@@ -133,7 +155,7 @@ const recipe = computed(() => {
 })
 
 const editRecipe = () => {
-  navigateTo(`/recipe/${route.params.id}/edit`)
+  navigateTo(`/recipe/edit/${route.params.id}`)
 }
 
 const duplicateRecipe = () => {
@@ -169,6 +191,45 @@ const handleDelete = async () => {
   }
 }
 
+const exportToBring = async () => {
+  if (!recipe.value || !bringConnected.value || !selectedList.value) return
+  
+  exportingToBring.value = true
+  
+  try {
+    // Convert ingredients to Bring! format
+    const items = recipe.value.ingredients.map(ingredient => {
+      // Try to split amount and name (e.g., "200g Mehl" -> name: "Mehl", spec: "200g")
+      const match = ingredient.match(/^([\d.]+\s*[a-zA-Z]*)\s+(.+)$/)
+      
+      if (match) {
+        return {
+          name: match[2],
+          spec: match[1],
+        }
+      } else {
+        return {
+          name: ingredient,
+          spec: '',
+        }
+      }
+    })
+    
+    const result = await bringAddItems(items)
+    
+    if (result.success) {
+      alert(`✅ ${items.length} Zutaten zu "${selectedList.value.name}" hinzugefügt!`)
+    } else {
+      throw new Error(result.error || 'Fehler beim Exportieren')
+    }
+  } catch (error: any) {
+    console.error('Bring export error:', error)
+    alert('❌ Fehler beim Exportieren: ' + error.message)
+  } finally {
+    exportingToBring.value = false
+  }
+}
+
 // ESC key handler for back navigation
 const handleKeydown = (e: KeyboardEvent) => {
   if (e.key === 'Escape') {
@@ -181,6 +242,9 @@ onMounted(async () => {
     await loadRecipes()
   }
   loading.value = false
+  
+  // Load Bring! data
+  loadBringData()
   
   // Add ESC key listener
   window.addEventListener('keydown', handleKeydown)

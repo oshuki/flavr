@@ -69,6 +69,47 @@
         </div>
       </div>
 
+      <!-- Bring! Integration -->
+      <ClientOnly>
+        <div class="settings-section">
+          <h2>🛒 Bring! Shopping List</h2>
+
+          <div v-if="!bringConnected" class="settings-row">
+            <div class="setting-info">
+              <div class="setting-label">Mit Bring! verbinden</div>
+              <div class="setting-sub">Exportiere Zutaten direkt zu deiner Einkaufsliste</div>
+            </div>
+            <button class="btn-secondary" @click="showBringLogin = true">
+              🔗 Verbinden
+            </button>
+          </div>
+
+          <div v-else>
+            <div class="settings-row">
+              <div class="setting-info">
+                <div class="setting-label">Verbunden mit Bring!</div>
+                <div class="setting-sub">{{ bringData?.email }}</div>
+              </div>
+              <button class="btn-secondary" @click="handleBringLogout">
+                🔌 Trennen
+              </button>
+            </div>
+
+            <div class="settings-row">
+              <div class="setting-info">
+                <div class="setting-label">Aktive Einkaufsliste</div>
+                <div class="setting-sub">
+                  {{ selectedList?.name || 'Keine Liste ausgewählt' }}
+                </div>
+              </div>
+              <button class="btn-secondary" @click="loadAndShowLists">
+                📋 Liste wählen
+              </button>
+            </div>
+          </div>
+        </div>
+      </ClientOnly>
+
       <!-- Danger Zone -->
       <div class="settings-section danger-section">
         <h2>⚠️ Gefahrenzone</h2>
@@ -194,6 +235,83 @@ Schritte:
         </div>
       </div>
     </div>
+
+    <!-- Bring! Login Modal -->
+    <ClientOnly>
+      <div v-if="showBringLogin" class="modal-overlay" @click="showBringLogin = false">
+        <div class="modal-content" @click.stop>
+          <h3>🛒 Mit Bring! verbinden</h3>
+          <p class="modal-sub">Gib deine Bring! Login-Daten ein</p>
+          
+          <input
+            v-model="bringEmail"
+            type="email"
+            class="form-input"
+            placeholder="E-Mail"
+            style="margin-bottom: 12px;"
+          >
+          
+          <input
+            v-model="bringPassword"
+            type="password"
+            class="form-input"
+            placeholder="Passwort"
+            style="margin-bottom: 16px;"
+          >
+          
+          <p v-if="bringError" style="color: #c33; margin-bottom: 16px; font-size: 14px;">
+            {{ bringError }}
+          </p>
+          
+          <div class="modal-actions">
+            <button class="btn-secondary" @click="showBringLogin = false">
+              Abbrechen
+            </button>
+            <button
+              class="btn-primary"
+              :disabled="!bringEmail || !bringPassword || bringLoading"
+              @click="handleBringLogin"
+            >
+              {{ bringLoading ? 'Verbinde...' : 'Verbinden' }}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bring! List Selection Modal -->
+      <div v-if="showBringLists" class="modal-overlay" @click="showBringLists = false">
+        <div class="modal-content" @click.stop>
+          <h3>📋 Einkaufsliste wählen</h3>
+          <p class="modal-sub">Wähle die Liste für deine Rezeptzutaten</p>
+          
+          <div v-if="bringLoading" style="text-align: center; padding: 20px;">
+            Lade Listen...
+          </div>
+          
+          <div v-else-if="bringLists.length === 0" style="text-align: center; padding: 20px; color: var(--muted);">
+            Keine Listen gefunden
+          </div>
+          
+          <div v-else style="margin-bottom: 16px;">
+            <div
+              v-for="list in bringLists"
+              :key="list.listUuid"
+              class="list-option"
+              :class="{ active: selectedList?.listUuid === list.listUuid }"
+              @click="handleSelectList(list)"
+            >
+              📋 {{ list.name }}
+            </div>
+          </div>
+          
+          <div class="modal-actions">
+            <button class="btn-secondary" @click="showBringLists = false">
+              Schließen
+            </button>
+          </div>
+        </div>
+      </div>
+    </ClientOnly>
   </div>
 </template>
 
@@ -204,13 +322,32 @@ const { recipes, loadRecipes, saveRecipe, deleteRecipe } = useRecipes()
 const { parseRecipeFromText } = useAI()
 const { categorizeRecipe } = useCategories()
 
+// Bring! composable
+const {
+  bringData,
+  selectedList,
+  lists: bringLists,
+  isConnected: bringConnected,
+  isLoading: bringLoading,
+  error: bringError,
+  loadBringData,
+  bringLogin,
+  bringGetLists,
+  bringSelectList,
+  bringLogout,
+} = useBring()
+
 const exporting = ref(false)
 const importing = ref(false)
 const showUrlImport = ref(false)
 const showTextImport = ref(false)
 const showDeleteModal = ref(false)
+const showBringLogin = ref(false)
+const showBringLists = ref(false)
 const urlInput = ref('')
 const textInput = ref('')
+const bringEmail = ref('')
+const bringPassword = ref('')
 
 // Export all recipes as JSON
 const exportData = () => {
@@ -384,10 +521,48 @@ const handleClearAll = async () => {
   }
 }
 
+// Bring! handlers
+const handleBringLogin = async () => {
+  const result = await bringLogin(bringEmail.value, bringPassword.value)
+  
+  if (result.success) {
+    showBringLogin.value = false
+    bringEmail.value = ''
+    bringPassword.value = ''
+    
+    // Auto-load lists
+    setTimeout(() => loadAndShowLists(), 500)
+  }
+}
+
+const handleBringLogout = async () => {
+  if (confirm('Möchtest du die Verbindung zu Bring! trennen?')) {
+    await bringLogout()
+  }
+}
+
+const loadAndShowLists = async () => {
+  const result = await bringGetLists()
+  
+  if (result.success) {
+    showBringLists.value = true
+  } else {
+    alert('Fehler beim Laden der Listen: ' + result.error)
+  }
+}
+
+const handleSelectList = async (list: any) => {
+  await bringSelectList(list)
+  showBringLists.value = false
+}
+
 onMounted(() => {
   if (recipes.value.length === 0) {
     loadRecipes()
   }
+  
+  // Load Bring! data from user metadata
+  loadBringData()
 })
 </script>
 
@@ -485,6 +660,27 @@ onMounted(() => {
 
 .about-info {
   text-align: center;
+}
+
+.list-option {
+  padding: 16px;
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  margin-bottom: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.list-option:hover {
+  border-color: var(--primary);
+  background: #f8f8ff;
+}
+
+.list-option.active {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: white;
+  font-weight: 500;
 }
 
 .modal-overlay {

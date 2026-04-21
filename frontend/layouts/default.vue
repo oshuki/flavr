@@ -30,13 +30,17 @@ const logout = async () => {
   navigateTo('/auth')
 }
 
-// Redirect to auth if not logged in
-watch(user, (newUser) => {
-  const route = useRoute()
-  if (!newUser && route.path !== '/auth' && !route.path.startsWith('/auth/')) {
-    navigateTo('/auth')
+// Redirect to auth if not logged in - only on client
+onMounted(() => {
+  if (process.client) {
+    watch(user, (newUser) => {
+      const route = useRoute()
+      if (!newUser && route.path !== '/auth' && !route.path.startsWith('/auth/')) {
+        navigateTo('/auth')
+      }
+    }, { immediate: true })
   }
-}, { immediate: true })
+})
 </script>
 
 <style scoped>
