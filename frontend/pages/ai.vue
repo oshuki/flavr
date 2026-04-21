@@ -12,11 +12,16 @@
       <!-- Ingredient Input -->
       <div class="ai-section">
         <label class="form-label">Welche Zutaten hast du?</label>
-        <IngredientChips
-          v-model="ingredients"
-          placeholder="z.B. Eier, Kartoffeln, Käse..."
-          empty-text="Füge Zutaten hinzu, um Rezeptvorschläge zu erhalten"
-        />
+        <ClientOnly>
+          <IngredientChips
+            v-model="ingredients"
+            placeholder="z.B. Eier, Kartoffeln, Käse..."
+            empty-text="Füge Zutaten hinzu, um Rezeptvorschläge zu erhalten"
+          />
+          <template #fallback>
+            <div class="loading-placeholder">Lädt...</div>
+          </template>
+        </ClientOnly>
       </div>
 
       <!-- Action Buttons -->
