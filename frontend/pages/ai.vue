@@ -12,16 +12,33 @@
       <!-- Ingredient Input -->
       <div class="ai-section">
         <label class="form-label">Welche Zutaten hast du?</label>
-        <ClientOnly>
-          <IngredientChips
-            v-model="ingredients"
-            placeholder="z.B. Eier, Kartoffeln, Käse..."
-            empty-text="Füge Zutaten hinzu, um Rezeptvorschläge zu erhalten"
-          />
-          <template #fallback>
-            <div class="loading-placeholder">Lädt...</div>
-          </template>
-        </ClientOnly>
+        
+        <!-- Simple Input Fallback -->
+        <div class="ingredient-input-fallback">
+          <div class="input-row">
+            <input
+              v-model="newIngredient"
+              type="text"
+              class="form-input"
+              placeholder="z.B. Eier, Kartoffeln, Käse..."
+              @keydown.enter.prevent="addIngredient"
+            >
+            <button type="button" class="btn-add" @click="addIngredient">
+              ＋ Hinzufügen
+            </button>
+          </div>
+          
+          <div v-if="ingredients.length > 0" class="ingredients-list">
+            <div v-for="(ingredient, index) in ingredients" :key="index" class="ingredient-chip">
+              <span>{{ ingredient }}</span>
+              <button type="button" @click="removeIngredient(index)" class="chip-remove">✕</button>
+            </div>
+          </div>
+          
+          <div v-else class="empty-hint">
+            Füge Zutaten hinzu, um Rezeptvorschläge zu erhalten
+          </div>
+        </div>
       </div>
 
       <!-- Action Buttons -->
@@ -134,6 +151,23 @@
           <li>Nutze die Kamera-Funktion, um Zutaten aus einem Foto zu erkennen</li>
         </ul>
       </div>
+const newIngredient = ref('')
+
+const addIngredient = () => {
+  const value = newIngredient.value.trim()
+  if (!value) return
+  
+  // Split by comma if multiple ingredients
+  const items = value.split(',').map(i => i.trim()).filter(i => i)
+  if (items.length > 0) {
+    ingredients.value = [...ingredients.value, ...items]
+    newIngredient.value = ''
+  }
+}
+
+const removeIngredient = (index: number) => {
+  ingredients.value.splice(index, 1)
+}
     </div>
   </div>
 </template>
@@ -300,6 +334,85 @@ const createFromSuggestion = async (index: number) => {
 
 .ai-section {
   margin-bottom: 32px;
+}
+
+.ingredient-input-fallback {
+  margin-top: 12px;
+}
+
+.input-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.input-row .form-input {
+  flex: 1;
+}
+
+.btn-add {
+  padding: 12px 24px;
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.btn-add:hover {
+  background: #e64d2e;
+  transform: translateY(-2px);
+}
+
+.ingredients-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.ingredient-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--bg);
+  border: 2px solid var(--border);
+  border-radius: 20px;
+  font-size: 14px;
+}
+
+.chip-remove {
+  background: none;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+  padding: 0;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s;
+}
+
+.chip-remove:hover {
+  color: #c33;
+}
+
+.empty-hint {
+  color: var(--muted);
+  font-size: 14px;
+  font-style: italic;
+  padding: 12px;
+  text-align: center;
+  background: var(--bg);
+  border-radius: 12px;
 }
 
 .ai-actions {
