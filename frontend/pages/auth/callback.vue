@@ -93,22 +93,3 @@ p {
 }
 </style>
 
-.spinner {
-  width: 48px;
-  height: 48px;
-  border: 4px solid var(--border);
-  border-top-color: var(--primary);
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin: 0 auto 20px;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-p {
-  color: var(--muted);
-  font-size: 14px;
-}
-</style>
