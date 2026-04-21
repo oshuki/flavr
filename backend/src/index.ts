@@ -63,15 +63,6 @@ app.post('/api/claude', async (c) => {
     const apiKey = process.env.CLAUDE_API_KEY
     const useMock = process.env.USE_MOCK_AI === 'true' || !apiKey
 
-    // Debug logging
-    console.log('🔍 Claude API Debug:', {
-      hasApiKey: !!apiKey,
-      apiKeyLength: apiKey?.length || 0,
-      apiKeyPrefix: apiKey?.substring(0, 10) || 'undefined',
-      useMockEnv: process.env.USE_MOCK_AI,
-      useMock
-    })
-
     if (useMock) {
       // Mock mode for testing without API key
       console.log('🤖 Using mock AI (no API key or USE_MOCK_AI=true)')
