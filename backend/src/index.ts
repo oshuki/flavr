@@ -41,6 +41,7 @@ app.use('*', cors({
     'http://localhost:8080',
     'https://flavrapp.netlify.app',
     'https://flavr.pages.dev',
+    'https://flavr-nuxt.pages.dev',
   ],
   allowMethods: ['GET', 'POST', 'OPTIONS'],
   allowHeaders: ['Content-Type', 'Authorization'],
