@@ -299,12 +299,38 @@ const createFromSuggestion = async (index: number) => {
   if (!suggestion) return
 
   try {
+    // Parse duration: extract number from strings like "30 Minuten" or "1 Stunde"
+    let duration = 30
+    if (typeof suggestion.duration === 'number') {
+      duration = suggestion.duration
+    } else if (typeof suggestion.duration === 'string') {
+      const match = suggestion.duration.match(/(\d+)/)
+      if (match) {
+        duration = parseInt(match[1], 10)
+        // Convert hours to minutes if needed
+        if (suggestion.duration.toLowerCase().includes('stunde')) {
+          duration = duration * 60
+        }
+      }
+    }
+    
+    // Parse servings: extract number
+    let servings = 2
+    if (typeof suggestion.servings === 'number') {
+      servings = suggestion.servings
+    } else if (typeof suggestion.servings === 'string') {
+      const match = suggestion.servings.match(/(\d+)/)
+      if (match) {
+        servings = parseInt(match[1], 10)
+      }
+    }
+
     const recipe = {
       id: crypto.randomUUID(),
       title: suggestion.title,
       category: categorizeRecipe(suggestion),
-      duration: suggestion.duration || 30,
-      servings: suggestion.servings || 2,
+      duration,
+      servings,
       ingredients: suggestion.ingredients,
       steps: suggestion.steps,
       tags: ['KI-generiert', ...ingredients.value.slice(0, 3)],
