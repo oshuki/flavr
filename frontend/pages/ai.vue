@@ -236,23 +236,55 @@ const handlePhotoUpload = async (event: Event) => {
         // Parse image via Claude Vision
         const result = await parseRecipeFromImage(base64)
         
-        if (result && result.ingredients) {
-          ingredients.value = [...ingredients.value, ...result.ingredients]
+        if (result && result.ingredients && result.ingredients.length > 0) {
+          // Add new ingredients (avoid duplicates)
+          const newIngredients = result.ingredients.filter(
+            (ing: string) => !ingredients.value.includes(ing)
+          )
+          ingredients.value = [...ingredients.value, ...newIngredients]
+          
+          // Show success message
+          loadingMessage.value = `${newIngredients.length} Zutaten erkannt!`
+          setTimeout(() => {
+            loadingMessage.value = ''
+            loading.value = false
+          }, 2000)
           
           // Auto-suggest after photo analysis
-          await getSuggestions()
+          if (ingredients.value.length > 0) {
+            await getSuggestions()
+          }
         } else {
-          error.value = 'Keine Zutaten im Foto erkannt. Versuche ein anderes Foto.'
+          error.value = 'Keine Zutaten im Foto erkannt. Versuche ein klareres Foto oder gib die Zutaten manuell ein.'
+          loading.value = false
+          loadingMessage.value = ''
         }
       } catch (e: any) {
         console.error('Photo analysis error:', e)
-        error.value = 'Fehler bei der Foto-Analyse. Bitte versuche es erneut.'
-      } finally {
+        // Show specific error message
+        const errorMsg = e.data?.error?.message || e.data?.error || e.message || ''
+        if (errorMsg.includes('API key') || errorMsg.includes('authentication')) {
+          error.value = 'KI-Service nicht verfügbar. Bitte versuche es später erneut.'
+        } else if (errorMsg.includes('rate limit')) {
+          error.value = 'Zu viele Anfragen. Bitte warte einen Moment.'
+        } else if (e.statusCode === 500 || e.status === 500) {
+          error.value = 'Server-Fehler. Bitte versuche es später erneut oder gib die Zutaten manuell ein.'
+        } else {
+          error.value = 'Fehler bei der Foto-Analyse. Bitte versuche ein anderes Foto oder gib die Zutaten manuell ein.'
+        }
         loading.value = false
         loadingMessage.value = ''
+      } finally {
         input.value = '' // Reset input
       }
     }
+    
+    reader.onerror = () => {
+      error.value = 'Fehler beim Laden des Fotos. Bitte versuche es erneut.'
+      loading.value = false
+      loadingMessage.value = ''
+    }
+    
     reader.readAsDataURL(file)
   } catch (e: any) {
     console.error('Photo upload error:', e)
