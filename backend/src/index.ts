@@ -21,14 +21,50 @@ try {
   Sentry.init({
     dsn: process.env.SENTRY_DSN_BACKEND || undefined,
     environment: process.env.NODE_ENV || 'development',
-    tracesSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 0.0,
+    tracesSampleRate: process.env.NODE_ENV === 'production' ? 0.2 : 1.0,
+    
+    // Release Tracking
+    release: process.env.RAILWAY_GIT_COMMIT_SHA || 'development',
+    
     integrations: [
       new RewriteFrames({ root: globalThis?.process?.cwd() || '' }) as any,
+      new Sentry.Integrations.Http({ tracing: true }),
+      new Sentry.Integrations.Console(),
+      new Sentry.Integrations.RequestData({
+        include: {
+          ip: true,
+          user: false, // Keine User-Daten in Request-Body
+        },
+      }),
     ],
+    
+    // Ignore bestimmte Error-Typen
+    ignoreErrors: [
+      'ECONNRESET',
+      'ETIMEDOUT',
+      'ENOTFOUND',
+    ],
+    
+    // Performance Monitoring
+    beforeSend(event, hint) {
+      // Log critical errors
+      if (event.level === 'fatal' || event.level === 'error') {
+        console.error('Sentry Error:', hint?.originalException || event.message)
+      }
+      
+      // Filter aus Informationen, die nicht gesendet werden sollen
+      if (event.request?.data) {
+        // Entferne potentiell sensitive Daten
+        delete event.request.data.password
+        delete event.request.data.token
+      }
+      
+      return event
+    },
   })
-  console.log('Sentry initialized (backend)')
+  console.log('✓ Sentry initialized (backend)')
 } catch (e) {
-  console.warn('Sentry init failed:', e)
+  console.warn('⚠️  Sentry init failed:', e)
 }
 
 // CORS für Frontend (localhost:5173 von Vite, sowie Production)
@@ -42,6 +78,7 @@ app.use('*', cors({
     'https://flavrapp.netlify.app',
     'https://flavr.pages.dev',
     'https://flavr-nuxt.pages.dev',
+    'https://flavr.9zehn77.de',
   ],
   allowMethods: ['GET', 'POST', 'OPTIONS'],
   allowHeaders: ['Content-Type', 'Authorization'],
@@ -55,10 +92,75 @@ app.get('/health', (c) => {
 })
 
 // ══════════════════════════════════════════════════════════════
+// RATE LIMITING - Simple In-Memory Rate Limiter
+// ══════════════════════════════════════════════════════════════
+interface RateLimitEntry {
+  count: number
+  resetTime: number
+}
+
+const rateLimitStore = new Map<string, RateLimitEntry>()
+const RATE_LIMIT_WINDOW = 60 * 1000 // 1 Minute
+const RATE_LIMIT_MAX = 20 // 20 Requests pro Minute
+
+function checkRateLimit(identifier: string): { allowed: boolean; remaining: number; resetTime: number } {
+  const now = Date.now()
+  const entry = rateLimitStore.get(identifier)
+
+  // Cleanup alte Einträge (älter als 5 Minuten)
+  if (rateLimitStore.size > 1000) {
+    const fiveMinutesAgo = now - 5 * 60 * 1000
+    for (const [key, value] of rateLimitStore.entries()) {
+      if (value.resetTime < fiveMinutesAgo) {
+        rateLimitStore.delete(key)
+      }
+    }
+  }
+
+  if (!entry || now > entry.resetTime) {
+    // Neues Zeitfenster
+    const resetTime = now + RATE_LIMIT_WINDOW
+    rateLimitStore.set(identifier, { count: 1, resetTime })
+    return { allowed: true, remaining: RATE_LIMIT_MAX - 1, resetTime }
+  }
+
+  if (entry.count >= RATE_LIMIT_MAX) {
+    // Limit überschritten
+    return { allowed: false, remaining: 0, resetTime: entry.resetTime }
+  }
+
+  // Request erlaubt, Counter erhöhen
+  entry.count++
+  return { allowed: true, remaining: RATE_LIMIT_MAX - entry.count, resetTime: entry.resetTime }
+}
+
+// ══════════════════════════════════════════════════════════════
 // CLAUDE API PROXY - Recipe Extraction & AI Cook
 // ══════════════════════════════════════════════════════════════
 app.post('/api/claude', async (c) => {
   try {
+    // Rate Limiting Check
+    const clientIP = c.req.header('x-forwarded-for')?.split(',')[0].trim() || 
+                     c.req.header('x-real-ip') || 
+                     'unknown'
+    
+    const rateLimit = checkRateLimit(clientIP)
+    
+    // Rate Limit Headers setzen
+    c.header('X-RateLimit-Limit', RATE_LIMIT_MAX.toString())
+    c.header('X-RateLimit-Remaining', rateLimit.remaining.toString())
+    c.header('X-RateLimit-Reset', new Date(rateLimit.resetTime).toISOString())
+    
+    if (!rateLimit.allowed) {
+      const retryAfter = Math.ceil((rateLimit.resetTime - Date.now()) / 1000)
+      c.header('Retry-After', retryAfter.toString())
+      return c.json({ 
+        error: 'Rate limit exceeded', 
+        message: `Too many requests. Please try again in ${retryAfter} seconds.`,
+        retryAfter 
+      }, 429 as any)
+    }
+
     const body: ClaudeRequest = await c.req.json()
     const apiKey = process.env.CLAUDE_API_KEY
     const useMock = process.env.USE_MOCK_AI === 'true' || !apiKey
@@ -340,6 +442,36 @@ app.post('/api/bring/items', async (c) => {
     try { Sentry.captureException(error) } catch (e) {}
     return c.json({ error: 'Fehler beim Hinzufügen', details: error instanceof Error ? error.message : String(error) }, 500 as any)
   }
+})
+
+// ══════════════════════════════════════════════════════════════
+// ERROR HANDLING - Global Error Handler
+// ══════════════════════════════════════════════════════════════
+app.onError((err, c) => {
+  console.error('Unhandled error:', err)
+  
+  // Sende zu Sentry
+  try {
+    Sentry.captureException(err, {
+      contexts: {
+        request: {
+          method: c.req.method,
+          url: c.req.url,
+          headers: Object.fromEntries(c.req.raw.headers),
+        },
+      },
+    })
+  } catch (e) {
+    console.error('Failed to send error to Sentry:', e)
+  }
+
+  // Generische Error Response
+  const status = (err as any).status || 500
+  return c.json({
+    error: 'Internal server error',
+    message: process.env.NODE_ENV === 'development' ? err.message : 'Something went wrong',
+    ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
+  }, status as any)
 })
 
 // ══════════════════════════════════════════════════════════════
