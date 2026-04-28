@@ -1,131 +1,133 @@
 <template>
   <div class="detail-page">
-    <div v-if="loading" class="loading-container">
+    <div v-if="loading" class="state-loading">
       <div class="spinner"></div>
-      <p>Lade Rezept...</p>
     </div>
 
-    <div v-else-if="!recipe" class="error-container">
-      <h2>😕 Rezept nicht gefunden</h2>
-      <p>Das Rezept existiert nicht oder wurde gelöscht.</p>
-      <button class="btn-primary" @click="navigateTo('/recipes')">
-        Zurück zur Übersicht
-      </button>
+    <div v-else-if="!recipe" class="state-error">
+      <p>Rezept nicht gefunden.</p>
+      <button class="btn-primary" @click="navigateTo('/recipes')">Zur Übersicht</button>
     </div>
 
-    <div v-else class="recipe-detail">
-      <!-- Header with Image -->
-      <div class="detail-header">
-        <button class="back-btn" @click="navigateTo('/recipes')" title="Zurück">
-          ← Zurück
+    <template v-else>
+      <!-- Hero image -->
+      <div class="detail-hero">
+        <img v-if="recipe.imageUrl" :src="recipe.imageUrl" :alt="recipe.title" class="hero-img">
+        <div v-else class="hero-placeholder">
+          <span class="hero-emoji">{{ emoji[recipe.category] || '🍽️' }}</span>
+        </div>
+
+        <!-- Overlay gradient -->
+        <div class="hero-gradient"></div>
+
+        <!-- Back button -->
+        <button class="hero-back" @click="navigateTo('/recipes')">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M19 12H5"/><path d="m12 19-7-7 7-7"/>
+          </svg>
         </button>
-        
-        <div v-if="recipe.imageUrl" class="detail-hero">
-          <img :src="recipe.imageUrl" :alt="recipe.title">
-          <div class="hero-overlay">
-            <button class="fav-btn-hero" @click="toggleFavorite(recipe.id)">
-              {{ recipe.isFavorite ? '⭐' : '☆' }}
-            </button>
-          </div>
-        </div>
 
-        <div class="detail-title-section">
-          <h1>{{ recipe.title }}</h1>
-          <div class="detail-meta-row">
-            <span class="category-badge">
-              {{ emoji[recipe.category] }} {{ recipe.category }}
-            </span>
-            <div class="meta-items">
-              <span v-if="recipe.duration">⏱️ {{ recipe.duration }} Min.</span>
-              <span v-if="recipe.servings">👥 {{ recipe.servings }} Pers.</span>
-            </div>
-          </div>
-          
-          <div v-if="recipe.tags && recipe.tags.length" class="detail-tags">
-            <span v-for="tag in recipe.tags" :key="tag" class="tag">
-              {{ tag }}
-            </span>
-          </div>
-        </div>
+        <!-- Fav button -->
+        <button class="hero-fav" :class="{ active: recipe.isFavorite }" @click="toggleFavorite(recipe.id)">
+          <svg width="18" height="18" viewBox="0 0 24 24" :fill="recipe.isFavorite ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+          </svg>
+        </button>
       </div>
 
-      <!-- Content -->
-      <div class="detail-content">
-        <!-- Ingredients -->
-        <div class="content-section">
-          <h2>🥘 Zutaten</h2>
-          <ul class="ingredient-list">
-            <li v-for="(ingredient, index) in recipe.ingredients" :key="index">
-              {{ ingredient }}
-            </li>
-          </ul>
-        </div>
+      <!-- Pull-up content card -->
+      <div class="detail-card">
+        <!-- Title & meta -->
+        <h1 class="detail-title">{{ recipe.title }}</h1>
 
-        <!-- Steps -->
-        <div class="content-section">
-          <h2>👨‍🍳 Zubereitung</h2>
-          <ol class="steps-list">
-            <li v-for="(step, index) in recipe.steps" :key="index">
-              {{ step }}
-            </li>
-          </ol>
-        </div>
-
-        <!-- Notes -->
-        <div v-if="recipe.notes" class="content-section">
-          <h2>📝 Notizen</h2>
-          <p class="notes-text">{{ recipe.notes }}</p>
-        </div>
-
-        <!-- Source -->
-        <div v-if="recipe.sourceApp" class="content-section">
-          <div class="source-info">
-            📱 Importiert aus: {{ recipe.sourceApp }}
+        <div class="detail-meta">
+          <div v-if="recipe.duration" class="meta-pill">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+            {{ recipe.duration }} Min.
           </div>
+          <div v-if="recipe.servings" class="meta-pill">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+            {{ recipe.servings }} Pers.
+          </div>
+          <div class="meta-pill meta-pill--accent">{{ recipe.category }}</div>
         </div>
-      </div>
 
-      <!-- Actions -->
-      <div class="detail-actions">
+        <!-- Tags -->
+        <div v-if="recipe.tags?.length" class="detail-tags">
+          <span v-for="tag in recipe.tags" :key="tag" class="tag">{{ tag }}</span>
+        </div>
+
+        <!-- Bring! button -->
         <ClientOnly>
-          <button
-            v-if="bringConnected && selectedList"
-            class="btn-primary"
-            @click="exportToBring"
-            :disabled="exportingToBring"
-          >
-            {{ exportingToBring ? '📤 Exportiere...' : '🛒 Zu Bring! hinzufügen' }}
+          <button v-if="bringConnected && selectedList" class="btn-bring" @click="exportToBring" :disabled="exportingToBring">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+            {{ exportingToBring ? 'Exportiere…' : 'Zu Bring! hinzufügen' }}
           </button>
         </ClientOnly>
-        
-        <button class="btn-secondary" @click="editRecipe">
-          ✏️ Bearbeiten
-        </button>
-        <button 
-          v-if="recipe.sourceApp !== 'KI-Koch'"
-          class="btn-secondary" 
-          @click="duplicateRecipe"
-        >
-          📋 Duplizieren
-        </button>
-        <button class="btn-secondary btn-danger" @click="confirmDelete">
-          🗑️ Löschen
-        </button>
-      </div>
-    </div>
 
-    <!-- Delete Confirmation Modal -->
-    <div v-if="showDeleteModal" class="modal-overlay" @click="showDeleteModal = false">
-      <div class="modal-content" @click.stop>
-        <h3>Rezept löschen?</h3>
-        <p>Möchtest du "{{ recipe?.title }}" wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.</p>
-        <div class="modal-actions">
-          <button class="btn-secondary" @click="showDeleteModal = false">
-            Abbrechen
+        <!-- Divider -->
+        <div class="section-divider"></div>
+
+        <!-- Ingredients -->
+        <section class="content-section">
+          <h2 class="section-heading">Zutaten</h2>
+          <ul class="ingredient-list">
+            <li v-for="(ing, i) in recipe.ingredients" :key="i" class="ingredient-item">
+              <div class="ingredient-dot"></div>
+              <span>{{ ing }}</span>
+            </li>
+          </ul>
+        </section>
+
+        <div class="section-divider"></div>
+
+        <!-- Steps -->
+        <section class="content-section">
+          <h2 class="section-heading">Zubereitung</h2>
+          <ol class="steps-list">
+            <li v-for="(step, i) in recipe.steps" :key="i" class="step-item">
+              <div class="step-num">{{ i + 1 }}</div>
+              <p class="step-text">{{ step }}</p>
+            </li>
+          </ol>
+        </section>
+
+        <!-- Notes -->
+        <div v-if="recipe.notes" class="section-divider"></div>
+        <section v-if="recipe.notes" class="content-section">
+          <h2 class="section-heading">Notizen</h2>
+          <p class="notes-text">{{ recipe.notes }}</p>
+        </section>
+
+        <!-- Source -->
+        <p v-if="recipe.sourceApp" class="source-info">Importiert aus: {{ recipe.sourceApp }}</p>
+
+        <!-- Actions -->
+        <div class="detail-actions">
+          <button class="btn-secondary" @click="editRecipe">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            Bearbeiten
           </button>
-          <button class="btn-primary btn-danger" @click="handleDelete">
+          <button v-if="recipe.sourceApp !== 'KI-Koch'" class="btn-secondary" @click="duplicateRecipe">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            Duplizieren
+          </button>
+          <button class="btn-secondary btn-danger" @click="confirmDelete">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
             Löschen
           </button>
+        </div>
+      </div>
+    </template>
+
+    <!-- Delete modal -->
+    <div v-if="showDeleteModal" class="modal-overlay" @click="showDeleteModal = false">
+      <div class="modal" @click.stop>
+        <h3>Rezept löschen?</h3>
+        <p>„{{ recipe?.title }}" wird unwiderruflich gelöscht.</p>
+        <div class="modal-actions">
+          <button class="btn-secondary" @click="showDeleteModal = false">Abbrechen</button>
+          <button class="btn-primary btn-danger" @click="handleDelete">Löschen</button>
         </div>
       </div>
     </div>
@@ -138,400 +140,195 @@ import type { Recipe } from '~/types'
 const route = useRoute()
 const { recipes, loadRecipes, deleteRecipe, toggleFavorite } = useRecipes()
 const { emoji } = useCategories()
+const { isConnected: bringConnected, selectedList, bringAddItems, loadBringData } = useBring()
 
-// Bring! composable
-const {
-  isConnected: bringConnected,
-  selectedList,
-  bringAddItems,
-  loadBringData,
-} = useBring()
-
-const loading = ref(true)
-const showDeleteModal = ref(false)
+const loading          = ref(true)
+const showDeleteModal  = ref(false)
 const exportingToBring = ref(false)
 
+const recipe = computed(() => recipes.value.find(r => r.id === route.params.id))
 
-
-const recipe = computed(() => {
-  const id = route.params.id as string
-  return recipes.value.find(r => r.id === id)
-})
-
-const editRecipe = () => {
-  navigateTo(`/recipe/edit/${route.params.id}`)
-}
+const editRecipe = () => navigateTo(`/recipe/edit/${route.params.id}`)
 
 const duplicateRecipe = () => {
   if (!recipe.value) return
-  
-  const duplicate: Recipe = {
-    ...recipe.value,
-    id: crypto.randomUUID(),
-    title: `${recipe.value.title} (Kopie)`,
-    createdAt: Date.now(),
-  }
-  
-  // Save via composable
   const { saveRecipe } = useRecipes()
-  saveRecipe(duplicate)
-  
+  saveRecipe({ ...recipe.value, id: crypto.randomUUID(), title: `${recipe.value.title} (Kopie)`, createdAt: Date.now() })
   navigateTo('/')
 }
 
-const confirmDelete = () => {
-  showDeleteModal.value = true
-}
-
-const handleDelete = async () => {
+const confirmDelete = () => { showDeleteModal.value = true }
+const handleDelete  = async () => {
   if (!recipe.value) return
-  
-  try {
-    await deleteRecipe(recipe.value.id)
-    navigateTo('/recipes')
-  } catch (error) {
-    console.error('Delete error:', error)
-    alert('Fehler beim Löschen')
-  }
+  await deleteRecipe(recipe.value.id)
+  navigateTo('/recipes')
 }
 
 const exportToBring = async () => {
-  if (!recipe.value || !bringConnected.value || !selectedList.value) return
-  
+  if (!recipe.value) return
   exportingToBring.value = true
-  
   try {
-    // Convert ingredients to Bring! format
-    const items = recipe.value.ingredients.map(ingredient => {
-      // Try to split amount and name (e.g., "200g Mehl" -> name: "Mehl", spec: "200g")
-      const match = ingredient.match(/^([\d.]+\s*[a-zA-Z]*)\s+(.+)$/)
-      
-      if (match) {
-        return {
-          name: match[2],
-          spec: match[1],
-        }
-      } else {
-        return {
-          name: ingredient,
-          spec: '',
-        }
-      }
+    const items = recipe.value.ingredients.map(ing => {
+      const m = ing.match(/^([\d.]+\s*[a-zA-Z]*)\s+(.+)$/)
+      return m ? { name: m[2], spec: m[1] } : { name: ing, spec: '' }
     })
-    
     const result = await bringAddItems(items)
-    
-    if (result.success) {
-      alert(`✅ ${items.length} Zutaten zu "${selectedList.value.name}" hinzugefügt!`)
-    } else {
-      throw new Error(result.error || 'Fehler beim Exportieren')
-    }
-  } catch (error: any) {
-    console.error('Bring export error:', error)
-    alert('❌ Fehler beim Exportieren: ' + error.message)
-  } finally {
-    exportingToBring.value = false
-  }
+    if (result.success) alert(`✅ ${items.length} Zutaten zu „${selectedList.value?.name}" hinzugefügt!`)
+    else throw new Error(result.error)
+  } catch (e: any) {
+    alert('❌ ' + e.message)
+  } finally { exportingToBring.value = false }
 }
 
-// ESC key handler for back navigation
-const handleKeydown = (e: KeyboardEvent) => {
-  if (e.key === 'Escape') {
-    navigateTo('/recipes')
-  }
-}
+const handleKeydown = (e: KeyboardEvent) => { if (e.key === 'Escape') navigateTo('/recipes') }
 
 onMounted(async () => {
-  if (recipes.value.length === 0) {
-    await loadRecipes()
-  }
+  if (!recipes.value.length) await loadRecipes()
   loading.value = false
-  
-  // Load Bring! data
   loadBringData()
-  
-  // Add ESC key listener
   window.addEventListener('keydown', handleKeydown)
 })
-
-onUnmounted(() => {
-  // Clean up event listener
-  window.removeEventListener('keydown', handleKeydown)
-})
+onUnmounted(() => window.removeEventListener('keydown', handleKeydown))
 </script>
 
 <style scoped>
-.detail-page {
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 20px;
-}
+.detail-page { background: var(--bg); min-height: 100dvh; }
 
-.loading-container,
-.error-container {
-  text-align: center;
-  padding: 60px 20px;
-}
+/* States */
+.state-loading, .state-error { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 60vh; gap: 16px; }
 
-.error-container h2 {
-  margin-bottom: 16px;
-}
-
-.error-container p {
-  color: var(--muted);
-  margin-bottom: 24px;
-}
-
-.back-btn {
-  background: white;
-  border: 1px solid var(--border);
-  padding: 10px 16px;
-  border-radius: 12px;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 500;
-  margin-bottom: 20px;
-  transition: all 0.2s;
-}
-
-.back-btn:hover {
-  border-color: var(--primary);
-  color: var(--primary);
-}
-
+/* Hero */
 .detail-hero {
-  position: relative;
-  width: 100%;
-  height: 400px;
-  border-radius: 20px;
-  overflow: hidden;
-  margin-bottom: 24px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  position: relative; width: 100%;
+  height: min(320px, 42vw);
+  min-height: 220px;
+  background: var(--surface2); overflow: hidden;
+}
+.hero-img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.hero-placeholder {
+  width: 100%; height: 100%;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--primary-light);
+}
+.hero-emoji { font-size: 72px; opacity: 0.6; }
+
+.hero-gradient {
+  position: absolute; inset: 0;
+  background: linear-gradient(to top, rgba(0,0,0,0.5) 0%, transparent 55%);
+  pointer-events: none;
 }
 
-.detail-hero img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+.hero-back, .hero-fav {
+  position: absolute; top: calc(env(safe-area-inset-top) + 12px);
+  width: 40px; height: 40px; border-radius: 50%;
+  background: rgba(0,0,0,0.35);
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  border: none; color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: background 0.15s;
 }
+.hero-back { left: 16px; }
+.hero-fav  { right: 16px; }
+.hero-fav.active { background: #DC2626; }
+.hero-back:hover, .hero-fav:hover { background: rgba(0,0,0,0.55); }
 
-.hero-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(to bottom, rgba(0,0,0,0.4) 0%, transparent 50%);
-}
-
-.fav-btn-hero {
-  position: absolute;
-  top: 20px;
-  right: 20px;
-  background: white;
-  border: none;
-  border-radius: 50%;
-  width: 56px;
-  height: 56px;
-  font-size: 28px;
-  cursor: pointer;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
-  transition: all 0.2s;
-}
-
-.fav-btn-hero:hover {
-  transform: scale(1.1);
-}
-
-.detail-title-section h1 {
-  font-size: 32px;
-  margin-bottom: 16px;
-  line-height: 1.2;
-}
-
-.detail-meta-row {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  flex-wrap: wrap;
-  margin-bottom: 16px;
-}
-
-.category-badge {
-  background: var(--primary);
-  color: white;
-  padding: 8px 16px;
-  border-radius: 20px;
-  font-size: 14px;
-  font-weight: 500;
-}
-
-.meta-items {
-  display: flex;
-  gap: 16px;
-  color: var(--muted);
-  font-size: 16px;
-}
-
-.detail-tags {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.tag {
+/* Pull-up card */
+.detail-card {
   background: var(--bg);
-  padding: 6px 14px;
-  border-radius: 16px;
-  font-size: 13px;
+  border-radius: 24px 24px 0 0;
+  margin-top: -22px;
+  position: relative; z-index: 2;
+  padding: 22px 20px 40px;
+  min-height: 60vh;
 }
 
-.detail-content {
-  margin-top: 40px;
-}
-
-.content-section {
-  background: white;
-  padding: 24px;
-  border-radius: 16px;
-  margin-bottom: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-}
-
-.content-section h2 {
-  font-size: 20px;
-  margin-bottom: 16px;
-}
-
-.ingredient-list {
-  list-style: none;
-  padding: 0;
-}
-
-.ingredient-list li {
-  padding: 12px 0;
-  border-bottom: 1px solid var(--border);
-  position: relative;
-  padding-left: 32px;
-}
-
-.ingredient-list li:last-child {
-  border-bottom: none;
-}
-
-.ingredient-list li:before {
-  content: '✓';
-  position: absolute;
-  left: 0;
-  color: var(--primary);
-  font-weight: bold;
-}
-
-.steps-list {
-  list-style: none;
-  counter-reset: step-counter;
-  padding: 0;
-}
-
-.steps-list li {
-  counter-increment: step-counter;
-  padding: 16px 0 16px 48px;
-  position: relative;
-  border-bottom: 1px solid var(--border);
-  line-height: 1.6;
-}
-
-.steps-list li:last-child {
-  border-bottom: none;
-}
-
-.steps-list li:before {
-  content: counter(step-counter);
-  position: absolute;
-  left: 0;
-  top: 16px;
-  background: var(--primary);
-  color: white;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: bold;
-  font-size: 14px;
-}
-
-.notes-text {
-  line-height: 1.6;
-  color: var(--text);
-  white-space: pre-wrap;
-}
-
-.source-info {
-  color: var(--muted);
-  font-size: 14px;
-  font-style: italic;
-}
-
-.detail-actions {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-  padding: 24px 0;
-}
-
-.detail-actions button {
-  flex: 1;
-  min-width: 140px;
-}
-
-.btn-danger {
-  background: #dc3545;
-  border-color: #dc3545;
-  color: white;
-}
-
-.btn-danger:hover {
-  background: #c82333;
-  border-color: #c82333;
-}
-
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.6);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  padding: 20px;
-}
-
-.modal-content {
-  background: white;
-  padding: 32px;
-  border-radius: 20px;
-  max-width: 400px;
-  width: 100%;
-}
-
-.modal-content h3 {
+.detail-title {
+  font-size: 26px; font-weight: 800;
+  letter-spacing: -0.8px; line-height: 1.2;
   margin-bottom: 12px;
 }
 
-.modal-content p {
-  color: var(--muted);
-  margin-bottom: 24px;
-  line-height: 1.6;
+.detail-meta { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+.meta-pill {
+  display: flex; align-items: center; gap: 5px;
+  padding: 7px 12px; border-radius: var(--radius-sm);
+  background: var(--surface2);
+  font-size: 13px; font-weight: 600; color: var(--muted);
+}
+.meta-pill--accent { background: var(--primary-light); color: var(--primary); }
+
+.detail-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
+
+/* Bring */
+.btn-bring {
+  width: 100%; margin-bottom: 16px;
+  padding: 14px; background: #FEDB00; color: #1C1C1C;
+  border: none; border-radius: var(--radius);
+  font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 700;
+  cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
+  transition: opacity 0.15s;
+}
+.btn-bring:hover { opacity: 0.88; }
+.btn-bring:disabled { opacity: 0.5; cursor: default; }
+
+/* Divider */
+.section-divider { height: 1px; background: var(--border); margin: 20px 0; }
+
+/* Content sections */
+.section-heading {
+  font-size: 18px; font-weight: 800;
+  letter-spacing: -0.4px; margin-bottom: 14px;
 }
 
-.modal-actions {
-  display: flex;
-  gap: 12px;
+/* Ingredients */
+.ingredient-list { list-style: none; padding: 0; }
+.ingredient-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 0; border-bottom: 1px solid var(--border);
+  font-size: 15px;
+}
+.ingredient-item:last-child { border-bottom: none; }
+.ingredient-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--primary); flex-shrink: 0;
 }
 
-.modal-actions button {
-  flex: 1;
+/* Steps */
+.steps-list { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.step-item {
+  display: flex; gap: 14px;
+  padding: 14px; background: var(--surface);
+  border-radius: var(--radius); border: 1px solid var(--border);
 }
+.step-num {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: var(--primary); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 800; flex-shrink: 0;
+}
+.step-text { font-size: 14px; line-height: 1.65; color: var(--text-mid); padding-top: 3px; }
+
+.notes-text { font-size: 14px; line-height: 1.7; color: var(--text-mid); white-space: pre-wrap; }
+
+.source-info { font-size: 13px; color: var(--muted); font-style: italic; margin-top: 8px; }
+
+/* Actions */
+.detail-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 24px; }
+.detail-actions button { flex: 1; min-width: 120px; }
+
+/* Modal */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.55);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 200; padding: 20px;
+}
+.modal {
+  background: #fff; padding: 28px;
+  border-radius: var(--radius-lg); max-width: 380px; width: 100%;
+}
+.modal h3 { margin-bottom: 8px; font-size: 18px; font-weight: 800; }
+.modal p  { color: var(--muted); font-size: 14px; margin-bottom: 20px; line-height: 1.6; }
+.modal-actions { display: flex; gap: 10px; }
+.modal-actions button { flex: 1; }
 </style>
