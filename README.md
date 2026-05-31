@@ -1,96 +1,126 @@
-# 🍳 Meine Rezepte — PWA
+# Flavr Recipe App
 
-> Hinweis (2026-05-31): Die aktuelle Architektur- und Aufgaben-Uebersicht steht in ARCHITECTURE_STATUS.md.
-> Schneller Doku-Einstieg (mobil): DOCS_INDEX.md.
+Production-ready recipe app with Nuxt frontend, backend API proxy, Supabase auth/data, and AI-assisted workflows.
 
-Persönliche Rezeptverwaltung als Progressive Web App. Läuft offline, kann auf dem iPhone wie eine native App installiert werden.
+Primary status and architecture docs:
+- ARCHITECTURE_STATUS.md
+- DOCS_INDEX.md
 
----
+## Current Stack
 
-## 📱 Auf iPhone installieren (empfohlen)
+- Frontend: Nuxt 4 SPA (frontend/)
+- Backend: Express + Hono API proxy (backend/)
+- Database/Auth: Supabase
+- AI: Claude via backend proxy, Pollinations image generation
+- Hosting: Cloudflare Pages (frontend), Railway (backend)
+- Testing: Playwright E2E (frontend), Vitest (backend)
 
-### Option A: Netlify (kostenlos, 2 Minuten)
+## Main Features
 
-1. Geh auf [netlify.com](https://netlify.com) und erstelle einen kostenlosen Account
-2. Ziehe den gesamten **Projektordner** auf die Netlify-Oberfläche (Drag & Drop)
-3. Du bekommst eine URL wie `https://dein-name.netlify.app`
-4. Öffne diese URL auf dem iPhone in **Safari**
-5. Tippe auf das **Teilen-Symbol** (☐↑) → **„Zum Home-Bildschirm"**
-6. Die App erscheint als Icon auf deinem Homescreen ✓
+- Recipes CRUD (create, edit, delete, detail)
+- AI chef suggestions from ingredients
+- Photo analysis for ingredient extraction
+- Bring integration (list export)
+- Google OAuth + email/password login
+- PWA installability and offline support
+- Claude chat recipe import page (/import)
 
-### Option B: GitHub Pages (kostenlos)
+## Project Structure
 
-1. Erstelle ein Repository auf [github.com](https://github.com)
-2. Lade alle Dateien hoch
-3. Gehe zu Settings → Pages → Source: main branch
-4. Öffne die generierte URL in Safari auf dem iPhone
-5. Teilen → „Zum Home-Bildschirm"
+```text
+rezepte-project/
+|- frontend/                # Nuxt app
+|- backend/                 # API proxy and integrations
+|- supabase/                # SQL, functions, auth-related assets
+|- .github/workflows/       # CI workflows
+|- ARCHITECTURE_STATUS.md   # Canonical architecture + priorities
+|- DOCS_INDEX.md            # Mobile-friendly docs entry point
+```
 
-### Option C: Lokal auf dem Mac öffnen
+## Local Development
+
+Prerequisites:
+- Node.js 20+
+- npm
+
+Frontend:
 
 ```bash
-# Im Projektordner:
-python3 -m http.server 8080
-# Dann im Browser: http://localhost:8080
+cd frontend
+npm install
+npm run dev
 ```
 
-> ⚠️ Direkt als `file://` öffnen funktioniert nicht für PWA-Features. Nutze einen lokalen Server oder hoste die Datei online.
+Frontend default URL: http://localhost:3002
 
----
+Backend:
 
-## ✨ Features
-
-| Feature | Beschreibung |
-|---------|--------------|
-| 📖 Rezeptverwaltung | Anlegen, Bearbeiten, Löschen mit Zutaten & Schritten |
-| 🔍 Suche & Filter | Nach Name, Zutat, Tag suchen; nach Kategorie & Favoriten filtern |
-| ⭐ Favoriten | Direkt auf der Karte oder im Detail umschaltbar |
-| 🔗 Link importieren | URL aus Instagram/TikTok einfügen, KI erstellt Rezept |
-| 📝 Text importieren | Kopierten Rezepttext aus Notizen-App einfügen |
-| 📸 Foto importieren | Screenshot eines Rezepts hochladen, KI liest es aus |
-| 🤖 KI-Koch | Zutaten eingeben → 3 Vorschläge → Rezept direkt speichern |
-| 💾 Export/Import | Backup als JSON-Datei |
-| 📴 Offline | Funktioniert ohne Internet (nach erstem Laden) |
-
----
-
-## 🔑 KI-Feature einrichten
-
-Die KI-Funktionen (Importieren, Vorschläge) benötigen einen Claude API Key:
-
-1. Gehe zu [console.anthropic.com](https://console.anthropic.com)
-2. Erstelle einen Account und einen API Key
-3. Öffne in der App den Tab **„KI-Koch"**
-4. Gib den Key unten ein (beginnt mit `sk-ant-...`)
-5. Der Key wird **lokal auf deinem Gerät** gespeichert — nirgendwo hochgeladen
-
-> Die ersten paar Dollar API-Nutzung sind bei Anthropic oft kostenlos verfügbar.
-
----
-
-## 📁 Projektstruktur
-
-```
-rezepte-project/
-├── index.html      ← Die komplette App (HTML + CSS + JS)
-├── sw.js           ← Service Worker für Offline-Support
-├── manifest.json   ← PWA-Manifest (Icon, Name, Display-Modus)
-├── icon-192.png    ← App-Icon (192×192px)
-├── icon-512.png    ← App-Icon (512×512px)
-└── README.md       ← Diese Anleitung
+```bash
+cd backend
+npm install
+npm run dev
 ```
 
----
+Backend default URL: http://localhost:3000
 
-## 🛠️ Anpassen
+Health check:
 
-Alle Logik befindet sich in einer einzigen `index.html`. Du kannst:
+```bash
+curl http://localhost:3000/health
+```
 
-- **Farben** ändern: CSS-Variablen im `:root` Block (oben im `<style>` Tag)
-- **Kategorien** ändern: `const CATS = [...]` im JavaScript
-- **Beispielrezepte** ändern: `getDefaultRecipes()` Funktion
-- **KI-Prompts** anpassen: `callClaude(system, ...)` Aufrufe
+## Environment Variables
 
----
+Frontend (public runtime):
+- NUXT_PUBLIC_BACKEND_URL
+- NUXT_PUBLIC_SUPABASE_URL
+- NUXT_PUBLIC_SUPABASE_KEY
+- NUXT_PUBLIC_SENTRY_DSN (optional)
 
-*Erstellt mit Claude — Anthropic*
+Backend (server secrets/runtime):
+- CLAUDE_API_KEY
+- NODE_ENV
+- SENTRY_DSN_BACKEND (optional)
+- USE_MOCK_AI (optional; true for mock mode)
+
+Templates and examples:
+- frontend/.env.example
+- backend/.env.example
+
+## Testing
+
+Frontend E2E (Playwright):
+
+```bash
+cd frontend
+npm run test:e2e
+npm run test:e2e:ui
+```
+
+Backend tests (Vitest):
+
+```bash
+cd backend
+npm test
+npm run test:coverage
+```
+
+## Deployment
+
+- Frontend production target: Cloudflare Pages
+- Backend production target: Railway
+
+Reference docs:
+- DEPLOYMENT.md
+- DEPLOYMENT_GUIDE.md
+- DEPLOY_NOW.md
+- CLOUDFLARE_MIGRATION.md
+
+## Documentation Policy
+
+- Canonical source for architecture and priorities: ARCHITECTURE_STATUS.md
+- Fast navigation, especially on mobile: DOCS_INDEX.md
+- Historical docs for context only:
+	- PROJECT_STATUS.md
+	- STATUS.md
+	- NEXT_STEPS.md
