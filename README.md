@@ -1,6 +1,7 @@
 # 🍳 Meine Rezepte — PWA
 
-> Hinweis (2026-05-31): Die aktuelle Architektur- und Aufgaben-Uebersicht steht in `ARCHITECTURE_STATUS.md`.
+> Hinweis (2026-05-31): Die aktuelle Architektur- und Aufgaben-Uebersicht steht in ARCHITECTURE_STATUS.md.
+> Schneller Doku-Einstieg (mobil): DOCS_INDEX.md.
 
 Persönliche Rezeptverwaltung als Progressive Web App. Läuft offline, kann auf dem iPhone wie eine native App installiert werden.
 

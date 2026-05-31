@@ -4,6 +4,8 @@ Last updated: 2026-05-31
 Branch: nuxt_js
 Goal of this document: single source of truth for current architecture and next work items.
 
+See also: DOCS_INDEX.md for a mobile-friendly documentation entry point.
+
 ## 1) Executive Snapshot
 
 - Project state: production running, core features implemented.
