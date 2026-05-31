@@ -1,151 +1,113 @@
-# 🚀 CI/CD Setup Guide
+# Deployment Guide
 
-## GitHub Actions Deployment
+Last updated: 2026-05-31
+Canonical status: ARCHITECTURE_STATUS.md
+Docs entry point: DOCS_INDEX.md
 
-Diese GitHub Actions Workflow deployt automatisch deine App auf GitHub Push.
+## Deployment Targets
 
-### Was wird deployed:
-- **Frontend**: Netlify (jedes Mal auf main Push)
-- **Backend**: Railway.app (jedes Mal auf main Push)
+- Frontend: Cloudflare Pages
+- Backend: Railway
+- Database/Auth: Supabase (hosted)
 
----
+## Production URLs (current)
 
-## 📋 Setup-Schritte
+- Frontend: https://flavr-nuxt.pages.dev
+- Backend: https://flavr-production.up.railway.app
 
-### 1️⃣ Netlify Setup (Frontend)
+## Frontend Deployment (Cloudflare Pages)
 
-#### 1.1 Netlify Account & Site
-```bash
-# Geh auf netlify.com
-# Verbinde dein GitHub Repository
-# Site wird automatisch erstellt
+1. Connect repository in Cloudflare Pages.
+2. Use branch nuxt_js.
+3. Configure build:
+
+```text
+Framework preset: Nuxt.js
+Root directory: frontend
+Build command: npm run generate
+Build output directory: .output/public
+Node version: 20
 ```
 
-#### 1.2 Netlify Auth Token
-```bash
-# In Netlify: User Settings → Applications → Personal Access Tokens
-# Erstelle einen neuen Token
-# Kopiere den Token
+4. Set environment variables in Cloudflare Pages project:
+
+```text
+NUXT_PUBLIC_BACKEND_URL=https://flavr-production.up.railway.app
+NUXT_PUBLIC_SUPABASE_URL=<supabase-url>
+NUXT_PUBLIC_SUPABASE_KEY=<supabase-anon-key>
+NUXT_PUBLIC_SENTRY_DSN=<optional>
 ```
 
-#### 1.3 GitHub Secrets hinzufügen
-```bash
-# Geh zu GitHub: Settings → Secrets and variables → Actions
-# Füge folgende Secrets hinzu:
+5. Deploy and verify at flavr-nuxt.pages.dev.
 
-NETLIFY_AUTH_TOKEN=<dein_token>
-NETLIFY_SITE_ID=<deine_site_id>
-SENTRY_DSN_FRONTEND=https://4227b5fc2fd69a62ae968aa19efae5c7@o4511226172145664.ingest.de.sentry.io/4511226207797328
-```
+## Backend Deployment (Railway)
 
-**Wie man die Site ID findet:**
-- Netlify Dashboard → Deine Site → Site settings → General → Site ID
+1. Connect repository or use Railway service deployment flow.
+2. Build/run from backend workspace.
+3. Set variables in Railway:
 
----
-
-### 2️⃣ Railway.app Setup (Backend)
-
-#### 2.1 Railway Account erstellen
-```bash
-# railway.app → Sign up mit GitHub
-# Grant Permissions
-```
-
-#### 2.2 Projekt & Service erstellen
-```bash
-# Railway Dashboard → New Project
-# Import from GitHub → Wähle rezepte-project
-# Deploy erfolgreich?
-```
-
-#### 2.3 Environment Variables auf Railway
-```bash
-# Railway Dashboard → Dein Projekt → Backend Service → Variables
-
-CLAUDE_API_KEY=<dein_echtes_key>
-SENTRY_DSN_BACKEND=https://71f10fedb606305d08ca9c024ee90ca6@o4511226172145664.ingest.de.sentry.io/4511226193903696
-PORT=3000
+```text
 NODE_ENV=production
+PORT=3000
+CLAUDE_API_KEY=<secret>
+SENTRY_DSN_BACKEND=<optional>
 ```
 
-#### 2.4 Railway Token für GitHub Actions
+4. Verify endpoint:
+
 ```bash
-# Railway Account → Tokens → New Token
-# Kopiere den Token
+curl https://flavr-production.up.railway.app/health
 ```
 
-#### 2.5 GitHub Secret hinzufügen
-```bash
-# GitHub: Settings → Secrets → New Secret
+## CI/CD Workflows in Repository
 
-RAILWAY_TOKEN=<dein_token>
-```
+- .github/workflows/e2e-tests.yml
+  - Runs Playwright E2E for main and nuxt_js
+  - Uses production base URL by default
 
----
+- .github/workflows/deploy.yml
+  - Contains legacy Netlify-focused deployment steps
+  - Keep as historical/optional until fully replaced by Cloudflare-specific workflow
 
-### 3️⃣ Frontend URL im Backend updaten
+## Release Flow (recommended)
 
-Nach dem ersten Deploy bekommst du die Railway URL. Dann update die `app.js`:
+1. Push changes to nuxt_js.
+2. Confirm E2E workflow status in GitHub Actions.
+3. Verify Cloudflare Pages deploy succeeded.
+4. Verify Railway service health.
+5. Smoke test login, recipe CRUD, AI flow, and Bring export.
 
-```javascript
-// app.js - Ändere diese Zeile (derzeit localhost:3000):
-const BACKEND_URL = 'https://dein-backend.railway.app'
+## Post-Deploy Validation Checklist
 
-// Und replace alle:
-fetch('http://localhost:3000/api/...')
-// Mit:
-fetch(BACKEND_URL + '/api/...')
-```
+- [ ] Frontend loads and routes resolve
+- [ ] /auth login works (Google + email/password)
+- [ ] Backend /health returns 200
+- [ ] AI call via /api/claude works
+- [ ] Bring endpoints work for connected account
+- [ ] PWA install prompt/manifest is valid
 
----
+## Troubleshooting
 
-## ✅ Test des Deployment
+### Frontend build fails on Cloudflare
 
-1. **Push zu main**: Git push sollte GitHub Actions triggern  
-2. **Warte auf Workflow**: GitHub → Actions Tab zeigt Status
-3. **Check Backends**: 
-   - Frontend: Deine Netlify URL
-   - Backend: Deine Railway Dashboard → App URL
+- Confirm root directory is frontend.
+- Confirm output directory is .output/public.
+- Confirm env vars exist in Cloudflare project settings.
 
----
+### Backend errors on Railway
 
-## 🔧 Troubleshooting
+- Check Railway logs for runtime errors.
+- Confirm CLAUDE_API_KEY is set.
+- Confirm CORS origin list in backend/src/index.ts includes active frontend domain.
 
-### Netlify Deploy schlägt fehl
-```
-→ Check: NETLIFY_SITE_ID und NETLIFY_AUTH_TOKEN korrekt?
-→ Check: Netlify Settings → Build Command richtig gesetzt?
-```
+### OAuth redirect mismatch
 
-### Railway Deploy schlägt fehl
-```
-→ Check: RAILWAY_TOKEN gültig?
-→ Check: Railway Dashboard Logs für Error Messages
-→ Try: railway up --service backend lokal testen
-```
+- Update Supabase URL configuration.
+- Verify Google OAuth configuration in Google Cloud Console.
+- See CUSTOM_DOMAIN_SETUP.md for exact redirect setup.
 
-### Backend URL nicht erreichbar
-```
-→ Check: Railway Service läuft?
-→ Check: CORS in backend/src/index.ts für deine Netlify URL updaten
-```
+## Legacy Notes
 
----
-
-## 📝 Nächste Schritte
-
-Nach erfolgreichem Deploy:
-
-1. **Sentry Integration** (Phase 1.4)
-   - Error Tracking setup
-   - Production Errors sichtbar machen
-  
-2. **Unit Tests** (Phase 1.5)
-   - Vitest für Backend
-   - CI/CD Tests before Deploy
-
-3. **Monitoring**
-   - Railway Logs checken
-   - Netlify Analytics
-   - Sentry Error Dashboard
+- Older documents mention Netlify-first deployment and direct app.js edits.
+- Current Nuxt architecture uses runtime environment variables instead.
 

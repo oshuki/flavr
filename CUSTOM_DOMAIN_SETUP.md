@@ -1,262 +1,122 @@
-# 🌐 Custom Domain Setup
+# Custom Domain Setup
 
-**Ziel:** Eigene Domain statt `flavr-nuxt.pages.dev`
+Last updated: 2026-05-31
+Canonical project status: ARCHITECTURE_STATUS.md
+Docs navigation: DOCS_INDEX.md
 
----
+Goal: use a custom domain instead of flavr-nuxt.pages.dev for the frontend and optionally api.<domain> for the backend.
 
-## 📋 Voraussetzungen
+## Current Target Architecture
 
-- Domain gekauft (z.B. bei Namecheap, GoDaddy, Google Domains, etc.)
-- Zugriff auf DNS-Einstellungen der Domain
+- Frontend hosting: Cloudflare Pages
+- Backend hosting: Railway
+- Auth: Supabase (with Google OAuth)
 
----
+## Prerequisites
 
-## 🚀 Setup: Cloudflare Pages
+- You own a domain.
+- You can edit DNS records at your registrar or in Cloudflare DNS.
+- You have access to Cloudflare, Supabase, Google Cloud Console, and Railway.
 
-### Schritt 1: Domain in Cloudflare hinzufügen
+## Frontend Domain on Cloudflare Pages
 
-1. **Gehe zu:** https://dash.cloudflare.com
-2. **Klicke:** "Add Site"
-3. **Eingeben:** Deine Domain (z.B. `flavr.app`)
-4. **Plan wählen:** Free Plan
-5. **Nameserver notieren** (z.B. `kai.ns.cloudflare.com`)
+1. Open Cloudflare dashboard.
+2. Go to Workers & Pages > flavr-nuxt > Custom domains.
+3. Add your domain, for example:
+   - flavr.app
+   - www.flavr.app
+4. Let Cloudflare create required DNS records.
 
-### Schritt 2: Nameserver beim Domain-Registrar ändern
+Typical DNS mapping:
 
-**Bei deinem Domain-Registrar (z.B. Namecheap, GoDaddy):**
-
-1. Gehe zu Domain-Verwaltung
-2. Finde "Nameserver"-Einstellungen
-3. Ändere von "Default" zu "Custom"
-4. Trage Cloudflare Nameserver ein:
-   ```
-   kai.ns.cloudflare.com
-   zelda.ns.cloudflare.com
-   ```
-5. Speichern (kann 24-48h dauern zur Propagierung)
-
-### Schritt 3: Domain zu Cloudflare Pages verbinden
-
-**1. Cloudflare Pages Dashboard:**
-- Gehe zu: https://dash.cloudflare.com
-- Wähle: "Workers & Pages"
-- Klicke auf: `flavr-nuxt`
-- Tab: "Custom domains"
-
-**2. Domain hinzufügen:**
-```
-Domain: flavr.app
+```text
+CNAME  @    flavr-nuxt.pages.dev
+CNAME  www  flavr-nuxt.pages.dev
 ```
 
-**3. DNS-Records werden automatisch erstellt:**
-```
-CNAME  @              flavr-nuxt.pages.dev
-CNAME  www            flavr-nuxt.pages.dev
-```
+## Optional Backend Domain (Recommended)
 
-**4. SSL/TLS:**
-- Automatisch via Cloudflare
-- HTTPS wird automatisch erzwungen
+If you want a stable API host like api.flavr.app:
 
-### Schritt 4: Testen
+1. In Railway service settings, add custom domain api.flavr.app.
+2. Add/confirm DNS record in Cloudflare:
 
-```bash
-# Warte 5-10 Minuten, dann teste:
-curl -I https://flavr.app
-
-# Sollte 200 OK oder 301 (Redirect zu www) zurückgeben
-```
-
----
-
-## 🔧 Optional: Subdomain Setup
-
-**Für z.B. `app.flavr.de`:**
-
-1. Cloudflare Pages Dashboard
-2. Custom Domains → Add Domain:
-   ```
-   app.flavr.de
-   ```
-3. DNS Record wird automatisch erstellt:
-   ```
-   CNAME  app  flavr-nuxt.pages.dev
-   ```
-
----
-
-## 📧 Backend Domain (Optional)
-
-**Falls eigene Backend-Domain gewünscht (z.B. `api.flavr.app`):**
-
-### Option 1: Railway Custom Domain
-
-**Railway Dashboard:**
-1. Öffne `flavr` Service
-2. Settings → Domains
-3. Add Custom Domain: `api.flavr.app`
-4. Railway gibt dir DNS-Record:
-   ```
-   CNAME  api  flavr-production.up.railway.app
-   ```
-
-**Cloudflare DNS:**
-```
+```text
 CNAME  api  flavr-production.up.railway.app
 ```
 
-### Option 2: Cloudflare Proxy
+3. Keep proxy mode and SSL enabled in Cloudflare.
 
-1. CNAME auf Railway
-2. Cloudflare Proxy aktivieren (Orange Cloud)
-3. Vorteile:
-   - DDoS Protection
-   - Caching
-   - Web Application Firewall
+## Application Configuration Updates
 
----
+After domain changes, update frontend runtime variable in Cloudflare Pages:
 
-## 🔒 SSL/TLS Einstellungen
-
-**Cloudflare Dashboard → SSL/TLS:**
-
-| Setting | Empfehlung |
-|---------|------------|
-| **Encryption Mode** | Full (strict) |
-| **Always Use HTTPS** | ✅ An |
-| **Automatic HTTPS Rewrites** | ✅ An |
-| **Minimum TLS Version** | 1.2 |
-| **TLS 1.3** | ✅ An |
-
----
-
-## 🚀 Frontend Environment Update
-
-**Nach Domain-Setup:**
-
-```bash
-# In .env.production oder Cloudflare Pages ENV
-NUXT_PUBLIC_BACKEND_URL=https://api.flavr.app  # Falls Backend-Domain
+```text
+NUXT_PUBLIC_BACKEND_URL=https://api.flavr.app
 ```
 
-**Deployment neu starten:**
-- Cloudflare Pages deployt automatisch bei jedem Push
-- Oder manuell: Dashboard → Deployments → Retry
+If you keep Railway default host, set:
 
----
+```text
+NUXT_PUBLIC_BACKEND_URL=https://flavr-production.up.railway.app
+```
 
-## 🧪 Testing Checklist
+## Supabase Auth URL Configuration (Mandatory)
 
-Nach Domain-Setup testen:
+In Supabase Dashboard > Authentication > URL Configuration:
 
-- [ ] `https://flavr.app` → Lädt Startseite
-- [ ] `https://www.flavr.app` → Redirect zu `flavr.app` (oder umgekehrt)
-- [ ] SSL-Zertifikat gültig (Schloss-Symbol im Browser)
-- [ ] Login funktioniert (OAuth Redirect URLs!)
-- [ ] API-Calls funktionieren (Network Tab prüfen)
-- [ ] PWA Installation funktioniert
+1. Site URL:
+   - https://flavr.app
+2. Redirect URLs:
+   - https://flavr.app/auth/callback
+   - https://www.flavr.app/auth/callback
 
----
+## Google OAuth Configuration (Mandatory)
 
-## ⚠️ Wichtig: OAuth Redirect URLs updaten
+In Google Cloud Console > APIs & Services > Credentials > OAuth client:
 
-**Supabase Dashboard:**
+1. Authorized JavaScript origins:
+   - https://flavr.app
+   - https://www.flavr.app
+2. Authorized redirect URIs:
+   - https://htescszituyzooubmxkh.supabase.co/auth/v1/callback
 
-1. Gehe zu: https://supabase.com/dashboard
-2. Projekt: `flavr`
-3. Authentication → URL Configuration
-4. **Site URL:**
-   ```
-   https://flavr.app
-   ```
-5. **Redirect URLs hinzufügen:**
-   ```
-   https://flavr.app/auth/callback
-   https://www.flavr.app/auth/callback
-   ```
-6. **Speichern**
+Note: Supabase is the OAuth callback receiver. App callback handling remains in /auth/callback.
 
-**OAuth-Provider (Google):**
+## SSL/TLS Recommendations
 
-1. Google Cloud Console
-2. APIs & Services → Credentials
-3. OAuth 2.0 Client IDs → Edit
-4. **Authorized JavaScript origins:**
-   ```
-   https://flavr.app
-   https://www.flavr.app
-   ```
-5. **Authorized redirect URIs:**
-   ```
-   https://flavr.app/auth/callback
-   https://www.flavr.app/auth/callback
-   ```
+Cloudflare SSL/TLS settings:
 
----
+- Encryption mode: Full (strict)
+- Always Use HTTPS: enabled
+- Automatic HTTPS Rewrites: enabled
+- Minimum TLS: 1.2
 
-## 📊 DNS Propagation prüfen
+## Verification Checklist
+
+- [ ] https://flavr.app opens
+- [ ] https://www.flavr.app redirect behavior is as intended
+- [ ] https://flavr.app/auth and Google login work
+- [ ] API calls succeed in browser network tab
+- [ ] PWA install works on mobile Safari
+
+Quick checks:
 
 ```bash
-# Check DNS Propagation
 dig flavr.app
 dig www.flavr.app
-
-# Oder online:
-# https://www.whatsmydns.net
+curl -I https://flavr.app
 ```
 
----
+## Rollback Plan
 
-## 💰 Kosten
+If issues appear after cutover:
 
-| Service | Kosten |
-|---------|--------|
-| **Domain** | ~$10-15/Jahr (je nach TLD) |
-| **Cloudflare** | $0 (Free Plan ausreichend) |
-| **SSL-Zertifikat** | $0 (via Cloudflare) |
+1. Keep using flavr-nuxt.pages.dev temporarily.
+2. Revert Site URL/Redirect URLs in Supabase.
+3. Revert frontend backend URL env var to known-good value.
 
----
+## Notes
 
-## 🔄 Rollback Plan
-
-**Falls Probleme auftreten:**
-
-1. **DNS zurücksetzen:**
-   - Nameserver zurück zu Original-Registrar
-   
-2. **Alte URL nutzen:**
-   - `flavr-nuxt.pages.dev` funktioniert weiterhin
-
-3. **OAuth URLs:**
-   - Alte URLs in Supabase wieder aktivieren
-
----
-
-## 📚 Empfohlene Domains
-
-**Verfügbar prüfen bei:**
-- Namecheap: https://www.namecheap.com
-- Google Domains: https://domains.google
-- Cloudflare Registrar: https://www.cloudflare.com/products/registrar/
-
-**Vorschläge:**
-- `flavr.app` - Kurz, modern
-- `flavr.de` - Für deutsche Zielgruppe
-- `flavr.io` - Tech-fokussiert
-- `myflavr.com` - Falls `flavr.com` vergeben
-
----
-
-## ✅ Status
-
-- [ ] Domain gekauft
-- [ ] Nameserver zu Cloudflare geändert
-- [ ] Custom Domain in Cloudflare Pages hinzugefügt
-- [ ] DNS Records konfiguriert
-- [ ] SSL/TLS aktiv
-- [ ] OAuth Redirect URLs aktualisiert
-- [ ] Testing durchgeführt
-
----
-
-**Geschätzte Dauer:** 1-2 Stunden (inkl. DNS-Propagation Wartezeit)
+- Legacy deployment docs may still mention Netlify. Use ARCHITECTURE_STATUS.md as source of truth.
+- This document should be updated whenever domain or auth routing strategy changes.
