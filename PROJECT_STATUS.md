@@ -1,5 +1,8 @@
 # 🍳 Flavr Recipe App - Projekt Status
 
+> Archiv-Hinweis (2026-05-31): Diese Datei ist historisch und wird nicht mehr aktiv gepflegt.
+> Bitte nutze fuer den aktuellen Stand ausschliesslich `ARCHITECTURE_STATUS.md`.
+
 **Stand:** 22. April 2026  
 **Status:** ✅ Production Ready  
 **Branch:** nuxt_js

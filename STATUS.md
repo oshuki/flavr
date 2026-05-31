@@ -1,5 +1,8 @@
 # 🚀 Production Status - 17. April 2026
 
+> Archiv-Hinweis (2026-05-31): Diese Datei ist historisch und wird nicht mehr aktiv gepflegt.
+> Bitte nutze fuer den aktuellen Stand ausschliesslich `ARCHITECTURE_STATUS.md`.
+
 ## ✅ Aktueller Status: LIVE IN PRODUCTION
 
 ### Deployments:
