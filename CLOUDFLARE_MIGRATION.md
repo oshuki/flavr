@@ -1,221 +1,106 @@
-# 🚀 Migration zu Cloudflare Pages
+# Cloudflare Pages Migration and Operations
 
-## Warum Cloudflare Pages?
+Last updated: 2026-05-31
+Canonical status: ARCHITECTURE_STATUS.md
+Docs entry point: DOCS_INDEX.md
 
-- ✅ **Unlimited Bandwidth** (kostenlos!)
-- ✅ **Extrem schnelles CDN** (200+ Standorte weltweit)
-- ✅ **Kostenlos für unlimitierte Sites**
-- ✅ **Auto-Deploy von GitHub**
-- ✅ **Bessere Performance** als Netlify
+This document explains the Cloudflare-first frontend setup and how it integrates with Railway and Supabase.
 
----
+## Why Cloudflare Pages
 
-## 📋 Migrations-Schritte
+- Fast global CDN
+- Automatic deploys from Git
+- Straightforward custom domain + SSL flow
+- Good fit for Nuxt static generation output
 
-### 1. Cloudflare Pages Setup
+## Current Production Setup
 
-1. **Gehe zu:** https://dash.cloudflare.com/
-2. **Registriere dich** oder logge dich ein (kostenlos)
-3. Klicke **"Workers & Pages"** → **"Create application"** → **"Pages"**
-4. Wähle **"Connect to Git"**
+- Frontend: https://flavr-nuxt.pages.dev
+- Backend: https://flavr-production.up.railway.app
+- Branch for active work: nuxt_js
 
-### 2. Repository verbinden
+## Cloudflare Pages Configuration
 
-1. **Autorisiere GitHub** (wenn noch nicht geschehen)
-2. Wähle Repository: **`oshuki/flavr`**
-3. Branch: **`nuxt_js`**
+Use these settings in Cloudflare Pages project:
 
-### 3. Build-Konfiguration
-
-Setze folgende Build-Einstellungen:
-
-```yaml
+```text
 Framework preset: Nuxt.js
-Build command: npm install && npm run generate
-Build output directory: .output/public
 Root directory: frontend
-Node version: 18
+Build command: npm run generate
+Build output directory: .output/public
+Node version: 20
 ```
 
-**WICHTIG:** Klicke auf **"Environment variables (advanced)"**
+Environment variables (placeholders only):
 
-### 4. Environment Variables setzen
-
-Klicke **"Add variable"** und füge hinzu:
-
-```bash
-# Backend URL (Railway)
-NUXT_PUBLIC_BACKEND_URL=https://flavr-production.up.railway.app
-
-# Supabase
-NUXT_PUBLIC_SUPABASE_URL=https://htescszituyzooubmxkh.supabase.co
-NUXT_PUBLIC_SUPABASE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh0ZXNjc3ppdHV5em9vdWJteGtoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU5MjQ0MDYsImV4cCI6MjA5MTUwMDQwNn0.ATopUfnXtyoWmJl1NfumhRrfQZcveDXZMWR9JWuIqKI
-
-# Sentry (Optional)
-NUXT_PUBLIC_SENTRY_DSN=https://71f10fedb606305d08ca9c024ee90ca6@o4511226172145664.ingest.de.sentry.io/4511226193903696
+```text
+NUXT_PUBLIC_BACKEND_URL=https://<your-backend-domain-or-railway-url>
+NUXT_PUBLIC_SUPABASE_URL=https://<your-project-ref>.supabase.co
+NUXT_PUBLIC_SUPABASE_KEY=<your-supabase-anon-key>
+NUXT_PUBLIC_SENTRY_DSN=<optional>
 ```
 
-### 5. Deploy starten
+## Deployment Flow
 
-1. Klicke **"Save and Deploy"**
-2. Warte 2-3 Minuten ⏳
-3. Deine App ist live! 🎉
+1. Push changes to nuxt_js.
+2. Cloudflare Pages triggers new deploy.
+3. Verify deployed URL.
+4. Run smoke checks (auth, recipes, AI, bring export).
 
----
-
-## 🌐 Custom Domain einrichten
-
-### Option A: Neue Domain bei Cloudflare
-
-1. **Pages Settings** → **Custom domains**
-2. Klicke **"Set up a custom domain"**
-3. Gib deine Domain ein (z.B. `flavr.app`)
-4. Folge den DNS-Anweisungen
-
-### Option B: Bestehende Domain
-
-1. **Pages Settings** → **Custom domains** → **"Set up a custom domain"**
-2. Gib deine Domain ein
-3. **Cloudflare wird automatisch:**
-   - SSL-Zertifikat erstellen
-   - DNS konfigurieren
-   - CDN aktivieren
-
-**Beispiel:** `flavr.pages.dev` → `www.flavr.app`
-
----
-
-## ⚙️ Supabase OAuth Update
-
-**Wichtig:** Aktualisiere die Redirect URL in Supabase!
-
-1. Gehe zu https://supabase.com/dashboard
-2. Projekt **Flavr** → **Authentication** → **URL Configuration**
-3. **Site URL:** `https://flavr.pages.dev` (oder deine Custom Domain)
-4. **Redirect URLs:** Füge hinzu:
-   ```
-   https://flavr.pages.dev/auth/callback
-   https://www.deine-domain.de/auth/callback
-   ```
-5. Klicke **Save**
-
----
-
-## 🔄 Auto-Deploy
-
-Cloudflare Pages deployed automatisch bei jedem Push zu `nuxt_js`:
+Typical command flow:
 
 ```bash
 git add -A
-git commit -m "Your changes"
+git commit -m "feat/fix/docs: ..."
 git push origin nuxt_js
 ```
 
-**Deploy dauert:** ~2 Minuten
-**Dashboard:** https://dash.cloudflare.com/ → Workers & Pages
+## Custom Domain and OAuth
 
----
+For custom domain setup, use CUSTOM_DOMAIN_SETUP.md.
 
-## 📊 Performance-Vergleich
+Critical follow-up after domain changes:
 
-| Metrik | Netlify | Cloudflare Pages |
-|--------|---------|------------------|
-| **Initial Load** | ~200ms | ~100ms |
-| **Global Latency** | ~50ms | ~20ms |
-| **CDN Standorte** | 9 | 200+ |
-| **Bandwidth Limit** | 100GB/Monat | Unlimited ✨ |
-| **Build Minutes** | 300/Monat | 500/Monat |
+1. Update Supabase Site URL and Redirect URLs.
+2. Verify Google OAuth client configuration.
+3. Confirm frontend env var NUXT_PUBLIC_BACKEND_URL still points to valid API host.
 
----
+## Post-Deploy Validation
 
-## 🧪 Nach Migration testen
+- [ ] Frontend loads without console/runtime errors
+- [ ] Login works (Google + email/password)
+- [ ] Backend health endpoint returns 200
+- [ ] AI flow works (via /api/claude)
+- [ ] Bring export still functions
+- [ ] PWA manifest and install behavior are valid
 
-1. **Öffne:** https://flavr.pages.dev
-2. **Teste:**
-   - [ ] Login (Google OAuth)
-   - [ ] Rezepte anzeigen
-   - [ ] Neues Rezept erstellen
-   - [ ] KI-Koch Vorschläge
-   - [ ] Bring! Export
-   - [ ] PWA Installation
+Quick checks:
 
-3. **Performance prüfen:**
-   - Chrome DevTools → Lighthouse
-   - Should score 95+ Performance 🚀
+```bash
+curl -I https://flavr-nuxt.pages.dev
+curl -sS https://flavr-production.up.railway.app/health
+```
 
----
+## Troubleshooting
 
-## 🗑️ Netlify deaktivieren (optional)
+### Build fails
 
-Wenn alles funktioniert:
+- Confirm root directory is frontend.
+- Confirm output directory is .output/public.
+- Confirm Node version is 20.
 
-1. Gehe zu https://app.netlify.com/
-2. Site Settings → Danger zone
-3. **"Delete site"** (optional, wenn du sicher bist)
+### API unreachable from frontend
 
-**TIPP:** Lass Netlify noch 1-2 Wochen laufen als Backup!
+- Check NUXT_PUBLIC_BACKEND_URL in Cloudflare settings.
+- Check backend availability on Railway.
+- Check CORS allowlist in backend/src/index.ts.
 
----
+### OAuth redirect mismatch
 
-## 🆘 Troubleshooting
+- Check Supabase Authentication URL configuration.
+- Check Google OAuth client redirect URI configuration.
 
-### Build failet?
+## Notes
 
-**Fehler:** `npm ERR! code ENOENT`
-**Lösung:** Stelle sicher dass **Root directory: `frontend`** gesetzt ist
-
-### 404 Fehler bei Routes?
-
-**Fehler:** `/recipes` gibt 404
-**Lösung:** `_redirects` Datei wird automatisch kopiert (bereits committed)
-
-### Environment Variables fehlen?
-
-**Fehler:** Backend nicht erreichbar
-**Lösung:** Prüfe alle Variables in Cloudflare Pages Settings
-
-### OAuth funktioniert nicht?
-
-**Fehler:** "redirect_uri mismatch"
-**Lösung:** Update Supabase Redirect URLs (siehe oben)
-
----
-
-## 💡 Bonus: Cloudflare Analytics
-
-Kostenlos aktivieren:
-
-1. **Pages Settings** → **Analytics**
-2. **Web Analytics aktivieren**
-3. Siehe Echtzeit-Statistiken:
-   - Seitenaufrufe
-   - Länder
-   - Browser
-   - Performance-Metriken
-
-**Dashboard:** https://dash.cloudflare.com/
-
----
-
-## ✅ Checkliste
-
-- [ ] Cloudflare Pages Account erstellt
-- [ ] Repository verbunden
-- [ ] Build-Konfiguration gesetzt
-- [ ] Environment Variables konfiguriert
-- [ ] Erster Deploy erfolgreich
-- [ ] Custom Domain eingerichtet (optional)
-- [ ] Supabase OAuth URLs aktualisiert
-- [ ] App getestet (Login, Rezepte, KI-Koch)
-- [ ] Performance geprüft (Lighthouse)
-- [ ] DNS propagiert (24h warten)
-
----
-
-**Fertig! 🎉 Deine App läuft jetzt auf Cloudflare Pages mit:**
-- ⚡ Blitzschneller Performance
-- 🌍 Globalem CDN
-- 💰 Unlimited Bandwidth
-- 🔒 Auto-SSL
-
-**Live URL:** https://flavr.pages.dev
+- Legacy docs may still refer to Netlify-first flow. Use ARCHITECTURE_STATUS.md as source of truth.
+- Keep this file operational and concise; store roadmap details in ARCHITECTURE_STATUS.md.
