@@ -3,6 +3,18 @@
     <div class="settings-container">
       <h1>⚙️ Einstellungen</h1>
 
+      <!-- Admin section (only visible for oshuki@gmail.com) -->
+      <div v-if="user?.email === 'oshuki@gmail.com'" class="settings-section">
+        <h2>🔐 Administration</h2>
+        <div class="settings-row">
+          <div class="setting-info">
+            <div class="setting-label">Benutzerverwaltung</div>
+            <div class="setting-sub">Zugänge freischalten oder sperren</div>
+          </div>
+          <button class="btn-secondary" @click="navigateTo('/admin')">👥 Verwalten</button>
+        </div>
+      </div>
+
       <!-- Data Management -->
       <div class="settings-section">
         <h2>📦 Daten-Verwaltung</h2>
@@ -328,6 +340,7 @@ Schritte:
 <script setup lang="ts">
 import type { Recipe } from '~/types'
 
+const user = useSupabaseUser()
 const { recipes, loadRecipes, saveRecipe, deleteRecipe } = useRecipes()
 const { parseRecipeFromText } = useAI()
 const { categorizeRecipe } = useCategories()
