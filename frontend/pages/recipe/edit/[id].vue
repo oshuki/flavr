@@ -158,13 +158,24 @@
         <div class="form-section">
           <div class="form-group">
             <label class="form-label" for="imageUrl">Bild-URL (optional)</label>
-            <input
-              id="imageUrl"
-              v-model="formData.imageUrl"
-              type="url"
-              class="form-input"
-              placeholder="https://..."
-            >
+            <div class="image-input-with-ai">
+              <input
+                id="imageUrl"
+                v-model="formData.imageUrl"
+                type="url"
+                class="form-input"
+                placeholder="https://..."
+              >
+              <button
+                type="button"
+                class="btn-ai"
+                @click="handleGenerateImage"
+                :disabled="!formData.title || isGeneratingImage"
+                title="KI-Bild generieren"
+              >
+                {{ isGeneratingImage ? '🎨 Generiere...' : '✨ KI-Bild' }}
+              </button>
+            </div>
             <div v-if="formData.imageUrl" class="image-preview">
               <img :src="formData.imageUrl" alt="Vorschau">
             </div>
@@ -191,8 +202,15 @@ import type { Recipe } from '~/types'
 const route = useRoute()
 const { recipes, saveRecipe } = useRecipes()
 const { categories, emoji, categorizeRecipe } = useCategories()
+const { generateRecipeImage, isGenerating: isGeneratingImage } = useImageGeneration()
 
-const isEdit = computed(() => route.params.id !== 'new')
+// Check if recipe exists to determine edit mode
+const existingRecipe = computed(() => {
+  const id = route.params.id as string
+  return recipes.value.find(r => r.id === id)
+})
+
+const isEdit = computed(() => !!existingRecipe.value)
 const saving = ref(false)
 
 const formData = ref<Partial<Recipe>>({
@@ -232,12 +250,35 @@ const removeStep = (index: number) => {
   formData.value.steps?.splice(index, 1)
 }
 
+const handleGenerateImage = async () => {
+  if (!formData.value.title) return
+  
+  const imageUrl = await generateRecipeImage(
+    formData.value.title,
+    formData.value.ingredients?.filter(i => i.trim()) || []
+  )
+  
+  if (imageUrl) {
+    formData.value.imageUrl = imageUrl
+  } else {
+    alert('Bildgenerierung fehlgeschlagen. Bitte versuche es erneut.')
+  }
+}
+
 const handleSubmit = async () => {
   if (!canSubmit.value) return
 
   saving.value = true
 
   try {
+    // Check if user is logged in
+    const user = useSupabaseUser()
+    if (!user.value) {
+      alert('Du musst eingeloggt sein um Rezepte zu speichern!')
+      navigateTo('/auth')
+      return
+    }
+
     // Parse tags
     const tags = tagsInput.value
       .split(',')
@@ -251,7 +292,7 @@ const handleSubmit = async () => {
     }
 
     const recipe: Recipe = {
-      id: isEdit.value ? (route.params.id as string) : crypto.randomUUID(),
+      id: route.params.id as string,
       title: formData.value.title!,
       category: category || 'Abendessen',
       duration: formData.value.duration || 0,
@@ -265,11 +306,15 @@ const handleSubmit = async () => {
       createdAt: formData.value.createdAt || Date.now(),
     }
 
+    console.log('Saving recipe:', recipe)
     await saveRecipe(recipe)
+    console.log('Recipe saved successfully')
     navigateTo('/recipes')
-  } catch (error) {
+  } catch (error: any) {
     console.error('Save error:', error)
-    alert('Fehler beim Speichern')
+    console.error('Error message:', error?.message)
+    console.error('Error details:', error?.details || error?.hint)
+    alert(`Fehler beim Speichern: ${error?.message || 'Unbekannter Fehler'}`)
   } finally {
     saving.value = false
   }
@@ -290,25 +335,22 @@ const handleKeydown = (e: KeyboardEvent) => {
 
 // Load existing recipe for edit
 onMounted(() => {
-  if (isEdit.value) {
-    const id = route.params.id as string
-    const existing = recipes.value.find(r => r.id === id)
-    
-    if (existing) {
-      formData.value = { ...existing }
-      tagsInput.value = existing.tags?.join(', ') || ''
-    } else {
-      navigateTo('/recipes')
-    }
+  if (existingRecipe.value) {
+    formData.value = { ...existingRecipe.value }
+    tagsInput.value = existingRecipe.value.tags?.join(', ') || ''
   }
   
-  // Add ESC key listener
-  window.addEventListener('keydown', handleKeydown)
+  // Add ESC key listener (browser only)
+  if (process.client) {
+    window.addEventListener('keydown', handleKeydown)
+  }
 })
 
 onUnmounted(() => {
-  // Clean up event listener
-  window.removeEventListener('keydown', handleKeydown)
+  // Clean up event listener (browser only)
+  if (process.client) {
+    window.removeEventListener('keydown', handleKeydown)
+  }
 })
 </script>
 
@@ -469,6 +511,39 @@ onUnmounted(() => {
   width: 100%;
   height: auto;
   display: block;
+}
+
+.image-input-with-ai {
+  display: flex;
+  gap: 12px;
+  align-items: stretch;
+}
+
+.image-input-with-ai .form-input {
+  flex: 1;
+}
+
+.btn-ai {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: all 0.2s;
+}
+
+.btn-ai:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.btn-ai:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .form-actions {

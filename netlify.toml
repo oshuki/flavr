@@ -1,16 +1,22 @@
-# Netlify Deployment Configuration for Nuxt 3 Frontend
+# Netlify Deployment Configuration for Nuxt 3 SPA Frontend
 
 [build]
   base = "frontend"
-  command = "npm install && npm run build"
-  publish = "frontend/.output/public"
+  command = "npm install && npm run generate"
+  publish = ".output/public"
+
+# SPA Redirect - all routes to index.html
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
 
 # Environment variables (set in Netlify UI: Site settings → Environment variables)
-# SENTRY_DSN_FRONTEND=https://...
+# NUXT_PUBLIC_BACKEND_URL=https://your-backend.railway.app
+# NUXT_PUBLIC_SENTRY_DSN=https://...
+# NUXT_PUBLIC_SUPABASE_URL=https://...
+# NUXT_PUBLIC_SUPABASE_KEY=...
   
-# Nuxt automatically handles redirects via server routes
-# No custom redirects needed for SSR
-
 # Security Headers
 [[headers]]
   for = "/*"
@@ -18,10 +24,8 @@
     X-Content-Type-Options = "nosniff"
     X-Frame-Options = "SAMEORIGIN"
     X-XSS-Protection = "1; mode=block"
-    Referrer-Policy = "strict-origin-when-cross-origin" browser.sentry-cdn.com; style-src 'self' 'unsafe-inline' fonts.googleapis.com; font-src fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://api.anthropic.com https://image.pollinations.ai https://htescszituyzooubmxkh.supabase.co https://o4511226172145664.ingest.de.sentry.i
-    
-    # Content Security Policy - update mit deinen URLs
-    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' fonts.googleapis.com; font-src fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://api.anthropic.com https://image.pollinations.ai https://htescszituyzooubmxkh.supabase.co; object-src 'none';"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' cdn.jsdelivr.net browser.sentry-cdn.com; style-src 'self' 'unsafe-inline' fonts.googleapis.com; font-src fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://api.anthropic.com https://image.pollinations.ai https://htescszituyzooubmxkh.supabase.co https://o4511226172145664.ingest.de.sentry.io https://*.railway.app; object-src 'none';"
 
 # Performance headers
 [[headers]]

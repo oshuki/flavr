@@ -29,9 +29,13 @@ export const useRecipes = () => {
   const recipeToRow = (recipe: Recipe): Partial<RecipeRow> => {
     if (!user.value) throw new Error('User not authenticated')
     
+    // Get user ID from either .id or .sub (JWT format)
+    const userId = user.value.id || (user.value as any).sub
+    if (!userId) throw new Error('User ID not found')
+    
     return {
       id: recipe.id,
-      user_id: user.value.id,
+      user_id: userId,
       title: recipe.title,
       category: recipe.category || 'Abendessen',
       duration: recipe.duration || 0,
@@ -71,14 +75,28 @@ export const useRecipes = () => {
 
   // Save (create or update) recipe
   const saveRecipe = async (recipe: Recipe) => {
+    if (!user.value) {
+      console.error('No user logged in!')
+      throw new Error('User not authenticated')
+    }
+    
+    const userId = user.value.id || (user.value as any).sub
+    console.log('Current user:', user.value)
+    console.log('Current user ID:', userId)
+    
     const row = recipeToRow(recipe)
+    console.log('Recipe row to save:', row)
+    
     const { data, error } = await supabase
       .from('recipes')
       .upsert(row)
       .select()
       .single()
     
-    if (error) throw error
+    if (error) {
+      console.error('Supabase error:', error)
+      throw error
+    }
     
     const savedRecipe = rowToRecipe(data)
     

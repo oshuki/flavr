@@ -1,47 +1,41 @@
 <template>
   <div class="recipe-card" @click="$emit('click')">
-    <div v-if="recipe.imageUrl" class="recipe-image">
-      <img :src="recipe.imageUrl" :alt="recipe.title" loading="lazy">
-      <div class="recipe-image-overlay">
-        <button 
-          class="fav-btn-overlay"
-          @click.stop="$emit('toggle-fav')"
-          :title="recipe.isFavorite ? 'Aus Favoriten entfernen' : 'Zu Favoriten hinzufügen'"
-        >
-          {{ recipe.isFavorite ? '⭐' : '☆' }}
-        </button>
+    <!-- Image area -->
+    <div class="recipe-image">
+      <img v-if="recipe.imageUrl" :src="recipe.imageUrl" :alt="recipe.title" loading="lazy">
+      <div v-else class="recipe-image-placeholder">
+        <span class="placeholder-emoji">{{ emoji[recipe.category] || '🍽️' }}</span>
       </div>
+
+      <!-- Favourite button -->
+      <button
+        class="fav-btn"
+        @click.stop="$emit('toggle-fav')"
+        :class="{ active: recipe.isFavorite }"
+        :aria-label="recipe.isFavorite ? 'Aus Favoriten entfernen' : 'Zu Favoriten hinzufügen'"
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" :fill="recipe.isFavorite ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+        </svg>
+      </button>
     </div>
-    
-    <div class="recipe-content">
-      <div class="recipe-header">
-        <h3 class="recipe-title">{{ recipe.title }}</h3>
-        <button 
-          v-if="!recipe.imageUrl"
-          class="fav-btn-inline"
-          @click.stop="$emit('toggle-fav')"
-          :title="recipe.isFavorite ? 'Aus Favoriten entfernen' : 'Zu Favoriten hinzufügen'"
-        >
-          {{ recipe.isFavorite ? '⭐' : '☆' }}
-        </button>
-      </div>
-      
-      <div class="recipe-category">
-        {{ emoji[recipe.category] || '📖' }} {{ recipe.category }}
-      </div>
-      
+
+    <!-- Card body -->
+    <div class="recipe-body">
+      <h3 class="recipe-title">{{ recipe.title }}</h3>
       <div class="recipe-meta">
-        <span v-if="recipe.duration">⏱️ {{ recipe.duration }} Min.</span>
-        <span v-if="recipe.servings">👥 {{ recipe.servings }} Pers.</span>
+        <span v-if="recipe.duration" class="meta-item">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+          {{ recipe.duration }} Min.
+        </span>
+        <span v-if="recipe.servings" class="meta-item">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          {{ recipe.servings }} Pers.
+        </span>
       </div>
-      
-      <div v-if="recipe.tags && recipe.tags.length" class="recipe-tags">
-        <span v-for="tag in recipe.tags.slice(0, 3)" :key="tag" class="tag">
-          {{ tag }}
-        </span>
-        <span v-if="recipe.tags.length > 3" class="tag-more">
-          +{{ recipe.tags.length - 3 }}
-        </span>
+      <div v-if="recipe.tags?.length" class="recipe-tags">
+        <span v-for="tag in recipe.tags.slice(0, 2)" :key="tag" class="tag">{{ tag }}</span>
+        <span v-if="recipe.tags.length > 2" class="tag tag-more">+{{ recipe.tags.length - 2 }}</span>
       </div>
     </div>
   </div>
@@ -50,15 +44,8 @@
 <script setup lang="ts">
 import type { Recipe } from '~/types'
 
-interface Props {
-  recipe: Recipe
-}
-
-defineProps<Props>()
-defineEmits<{
-  (e: 'click'): void
-  (e: 'toggle-fav'): void
-}>()
+defineProps<{ recipe: Recipe }>()
+defineEmits<{ (e: 'click'): void; (e: 'toggle-fav'): void }>()
 
 const { emoji } = useCategories()
 </script>
@@ -66,145 +53,94 @@ const { emoji } = useCategories()
 <style scoped>
 .recipe-card {
   background: var(--card);
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   overflow: hidden;
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  position: relative;
+  border: 1px solid var(--border);
+  transition: box-shadow 0.2s, transform 0.2s;
 }
-
 .recipe-card:hover {
-  transform: translateY(-8px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-3px);
 }
+.recipe-card:active { transform: scale(0.98); }
 
+/* Image */
 .recipe-image {
   position: relative;
   width: 100%;
-  height: 200px;
+  aspect-ratio: 4 / 3;
   overflow: hidden;
-  background: var(--border);
+  background: var(--surface2);
 }
-
 .recipe-image img {
-  width: 100%;
-  height: 100%;
+  width: 100%; height: 100%;
   object-fit: cover;
+  display: block;
   transition: transform 0.3s;
 }
+.recipe-card:hover .recipe-image img { transform: scale(1.04); }
 
-.recipe-card:hover .recipe-image img {
-  transform: scale(1.05);
+.recipe-image-placeholder {
+  width: 100%; height: 100%;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--surface2);
 }
+.placeholder-emoji { font-size: 36px; opacity: 0.6; }
 
-.recipe-image-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(to bottom, rgba(0,0,0,0.3) 0%, transparent 50%);
-  opacity: 0;
-  transition: opacity 0.3s;
-}
-
-.recipe-card:hover .recipe-image-overlay {
-  opacity: 1;
-}
-
-.fav-btn-overlay {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  background: white;
-  border: none;
-  border-radius: 50%;
-  width: 44px;
-  height: 44px;
-  font-size: 22px;
+/* Fav button */
+.fav-btn {
+  position: absolute; top: 10px; right: 10px;
+  width: 34px; height: 34px;
+  background: rgba(255,255,255,0.92);
+  backdrop-filter: blur(6px);
+  border: none; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-  transition: all 0.2s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  color: var(--muted-light);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+  transition: color 0.15s, transform 0.15s;
 }
+.fav-btn:hover { transform: scale(1.1); }
+.fav-btn.active { color: #E53E3E; }
 
-.fav-btn-overlay:hover {
-  transform: scale(1.1);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
-}
-
-.recipe-content {
-  padding: 16px;
-}
-
-.recipe-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 8px;
-  margin-bottom: 8px;
-}
+/* Body */
+.recipe-body { padding: 12px 14px 14px; }
 
 .recipe-title {
-  font-size: 18px;
-  font-weight: 600;
-  margin: 0;
-  line-height: 1.4;
-  flex: 1;
-}
-
-.fav-btn-inline {
-  background: none;
-  border: none;
-  font-size: 20px;
-  cursor: pointer;
-  padding: 4px;
-  line-height: 1;
-  transition: transform 0.2s;
-}
-
-.fav-btn-inline:hover {
-  transform: scale(1.2);
-}
-
-.recipe-category {
-  font-size: 13px;
-  color: var(--muted);
-  margin-bottom: 8px;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.3;
+  margin-bottom: 7px;
+  color: var(--text);
+  letter-spacing: -0.2px;
 }
 
 .recipe-meta {
-  display: flex;
-  gap: 16px;
-  font-size: 14px;
-  color: var(--muted);
+  display: flex; gap: 10px;
+  font-size: 12px; color: var(--muted);
   margin-bottom: 8px;
 }
-
-.recipe-tags {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-  margin-top: 12px;
-}
-
-.tag {
-  background: var(--bg);
-  padding: 4px 10px;
-  border-radius: 12px;
-  font-size: 12px;
-  color: var(--text);
-}
-
-.tag-more {
-  background: var(--border);
-  padding: 4px 10px;
-  border-radius: 12px;
-  font-size: 12px;
-  color: var(--muted);
+.meta-item {
+  display: flex; align-items: center; gap: 4px;
   font-weight: 500;
+}
+
+/* Tags */
+.recipe-tags { display: flex; gap: 5px; flex-wrap: wrap; }
+.tag {
+  padding: 3px 9px;
+  border-radius: var(--radius-sm);
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-mid);
+}
+.tag-more {
+  background: var(--primary-light);
+  border-color: transparent;
+  color: var(--primary);
+  font-weight: 600;
 }
 </style>

@@ -1,69 +1,84 @@
 # Production Environment Variables
 
-## Frontend (Nuxt 3)
+Last updated: 2026-05-31
+Canonical status: ARCHITECTURE_STATUS.md
+Docs entry point: DOCS_INDEX.md
 
-Create `frontend/.env` for production:
+Use placeholders only in documentation. Never commit real secrets.
+
+## Frontend (Cloudflare Pages / Nuxt)
+
+Set in Cloudflare Pages project settings:
 
 ```bash
-# Supabase
-NUXT_PUBLIC_SUPABASE_URL=https://htescszituyzooubmxkh.supabase.co
-NUXT_PUBLIC_SUPABASE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh0ZXNjc3ppdHV5em9vdWJteGtoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU5MjQ0MDYsImV4cCI6MjA5MTUwMDQwNn0.ATopUfnXtyoWmJl1NfumhRrfQZcveDXZMWR9JWuIqKI
+# Supabase (public runtime)
+NUXT_PUBLIC_SUPABASE_URL=https://<your-project-ref>.supabase.co
+NUXT_PUBLIC_SUPABASE_KEY=<your-supabase-anon-key>
 
-# Backend API (UPDATE after Railway deployment!)
-NUXT_PUBLIC_BACKEND_URL=https://YOUR-BACKEND.railway.app
+# Backend API
+NUXT_PUBLIC_BACKEND_URL=https://<your-backend-domain-or-railway-url>
 
-# Sentry (Frontend)
-NUXT_PUBLIC_SENTRY_DSN=https://4227b5fc2fd69a62ae968aa19efae5c7@o4511226172145664.ingest.de.sentry.io/4511226207797328
+# Sentry (optional)
+NUXT_PUBLIC_SENTRY_DSN=<your-frontend-sentry-dsn>
 ```
 
-## Backend (Hono + Node.js)
+## Backend (Railway)
 
-Set in Railway Dashboard UI:
+Set in Railway service variables:
 
 ```bash
 NODE_ENV=production
 PORT=3000
 
-# Anthropic API
-ANTHROPIC_API_KEY=sk-ant-...
+# Claude / Anthropic
+CLAUDE_API_KEY=<your-claude-api-key>
 
-# Sentry (Backend)
-SENTRY_DSN=https://YOUR-BACKEND-DSN@o4511226172145664.ingest.de.sentry.io/...
+# Optional
+SENTRY_DSN_BACKEND=<your-backend-sentry-dsn>
+USE_MOCK_AI=false
 ```
 
 ## GitHub Actions Secrets
 
-Required secrets in GitHub repository:
+Required/typical repository secrets:
 
-```
-NETLIFY_AUTH_TOKEN=<from-netlify-account>
-NETLIFY_SITE_ID=<from-netlify-site>
-RAILWAY_TOKEN=<from-railway-account>
-NUXT_PUBLIC_SUPABASE_URL=https://htescszituyzooubmxkh.supabase.co
-NUXT_PUBLIC_SUPABASE_KEY=eyJhbGci...
-NUXT_PUBLIC_BACKEND_URL=https://YOUR-BACKEND.railway.app
-SENTRY_DSN_FRONTEND=https://...
-```
-
-## Post-Deployment: Supabase Auth Redirect URLs
-
-Add production URLs to Supabase Dashboard:
-
-```
-Authentication → URL Configuration → Redirect URLs:
-- https://YOUR-SITE.netlify.app/auth/callback
-- https://YOUR-SITE.netlify.app/**
+```text
+RAILWAY_TOKEN=<from-railway>
+NUXT_PUBLIC_SUPABASE_URL=https://<your-project-ref>.supabase.co
+NUXT_PUBLIC_SUPABASE_KEY=<your-supabase-anon-key>
+NUXT_PUBLIC_BACKEND_URL=https://<your-backend-domain-or-railway-url>
+SENTRY_DSN_FRONTEND=<optional>
+TEST_USER_EMAIL=<optional-for-e2e>
+TEST_USER_PASSWORD=<optional-for-e2e>
+SUPABASE_TEST_TOKEN=<optional-for-e2e>
 ```
 
-## Google OAuth Redirect URLs
+Note: legacy Netlify secrets may still exist in repository settings but are not required for Cloudflare-first deployment.
 
-Update Google Cloud Console:
+## Supabase Auth URL Configuration
 
+In Supabase Dashboard > Authentication > URL Configuration:
+
+```text
+Site URL:
+- https://<your-frontend-domain>
+
+Redirect URLs:
+- https://<your-frontend-domain>/auth/callback
+- https://www.<your-frontend-domain>/auth/callback
 ```
+
+## Google OAuth Redirect Configuration
+
+In Google Cloud Console OAuth client:
+
+```text
 Authorized redirect URIs:
-- https://htescszituyzooubmxkh.supabase.co/auth/v1/callback
+- https://<your-project-ref>.supabase.co/auth/v1/callback
 ```
 
----
+## Security Notes
 
-_Diese Werte werden NICHT in Git committed - nur als Referenz!_
+- If any secret-like value was committed before, rotate it immediately.
+- Prefer storing secrets in provider dashboards (Railway/Cloudflare/GitHub), not in files.
+- Keep .env files out of version control.

@@ -8,7 +8,7 @@ export const useAI = () => {
     const response = await $fetch(`${backendUrl}/api/claude`, {
       method: 'POST',
       body: {
-        model: 'claude-3-5-sonnet-20241022',
+        model: 'claude-sonnet-4-6',
         max_tokens: 2000,
         messages
       }
@@ -38,7 +38,24 @@ export const useAI = () => {
 
   const suggestRecipes = async (ingredients: string[]): Promise<AIRecipeSuggestion[]> => {
     const ingredientsText = ingredients.join(', ')
-    const systemPrompt = `Given these ingredients: ${ingredientsText}, suggest 3 recipes. Return JSON array with: [{ title, ingredients, steps, duration, servings }]`
+    const systemPrompt = `Given these ingredients: ${ingredientsText}, suggest 3 recipes in German for 4 people.
+
+IMPORTANT: Return ONLY a JSON array (no markdown, no text). Use this exact format:
+[{
+  "title": "Recipe name",
+  "ingredients": ["200g ingredient 1", "3 EL ingredient 2", "1 Prise ingredient 3"],
+  "steps": ["step 1", "step 2"],
+  "duration": 30,
+  "servings": 4
+}]
+
+Rules:
+- duration must be a NUMBER (minutes as integer)
+- servings must be a NUMBER (integer, default 4)
+- ingredients must include QUANTITIES (e.g., "200g Mehl", "3 Eier", "1 TL Salz", "2 EL Öl")
+- Write in German
+- Return 3 different recipes
+- Always for 4 people unless ingredients are clearly limited`
     
     const response = await callClaude([
       { role: 'user', content: systemPrompt }

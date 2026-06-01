@@ -1,5 +1,8 @@
 # 📋 Next Steps - Verbleibende Features
 
+> Archiv-Hinweis (2026-05-31): Diese Datei ist historisch und wird nicht mehr aktiv gepflegt.
+> Bitte nutze fuer den aktuellen Stand und die priorisierten Aufgaben ausschliesslich `ARCHITECTURE_STATUS.md`.
+
 ## Status nach Phase 2.5.1 ✅
 
 ### Was funktioniert:
