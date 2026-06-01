@@ -22,9 +22,9 @@ NUXT_PUBLIC_BACKEND_URL=https://<your-backend-domain-or-railway-url>
 NUXT_PUBLIC_SENTRY_DSN=<your-frontend-sentry-dsn>
 ```
 
-## Backend (Railway)
+## Backend (Render)
 
-Set in Railway service variables:
+Set in Render service variables:
 
 ```bash
 NODE_ENV=production
@@ -43,7 +43,7 @@ USE_MOCK_AI=false
 Required/typical repository secrets:
 
 ```text
-RAILWAY_TOKEN=<from-railway>
+RENDER_DEPLOY_HOOK_URL=<from-render-web-service>
 NUXT_PUBLIC_SUPABASE_URL=https://<your-project-ref>.supabase.co
 NUXT_PUBLIC_SUPABASE_KEY=<your-supabase-anon-key>
 NUXT_PUBLIC_BACKEND_URL=https://<your-backend-domain-or-railway-url>
@@ -80,5 +80,5 @@ Authorized redirect URIs:
 ## Security Notes
 
 - If any secret-like value was committed before, rotate it immediately.
-- Prefer storing secrets in provider dashboards (Railway/Cloudflare/GitHub), not in files.
+- Prefer storing secrets in provider dashboards (Render/Cloudflare/GitHub), not in files.
 - Keep .env files out of version control.

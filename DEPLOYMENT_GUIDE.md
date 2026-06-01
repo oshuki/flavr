@@ -7,13 +7,13 @@ Docs entry point: DOCS_INDEX.md
 ## Target Architecture
 
 - Frontend: Cloudflare Pages (Nuxt static output)
-- Backend: Railway (Node service from backend/)
+- Backend: Render (Node service from backend/)
 - Data/Auth: Supabase
 
 ## Required Accounts
 
 - Cloudflare account with Pages enabled
-- Railway account
+- Render account
 - Supabase project
 - GitHub repository access
 
@@ -38,15 +38,15 @@ NUXT_PUBLIC_SUPABASE_KEY=<your-supabase-anon-key>
 NUXT_PUBLIC_SENTRY_DSN=<optional>
 ```
 
-## 2. Railway Setup (Backend)
+## 2. Render Setup (Backend)
 
-Create or update a Railway service:
+Create or update a Render Web Service:
 
 - Service root: backend
 - Build command: npm install && npm run build
 - Start command: npm start
 
-Set Railway variables:
+Set Render environment variables:
 
 ```text
 NODE_ENV=production
@@ -59,7 +59,7 @@ USE_MOCK_AI=false
 Save the public backend URL, for example:
 
 ```text
-https://flavr-production.up.railway.app
+https://flavr-backend.onrender.com
 ```
 
 Then update Cloudflare Pages variable NUXT_PUBLIC_BACKEND_URL accordingly.
@@ -69,7 +69,7 @@ Then update Cloudflare Pages variable NUXT_PUBLIC_BACKEND_URL accordingly.
 Repository secrets needed for the current deploy workflow:
 
 ```text
-RAILWAY_TOKEN=<railway-token>
+RENDER_DEPLOY_HOOK_URL=<render-deploy-hook-url>
 NUXT_PUBLIC_SUPABASE_URL=https://<your-project-ref>.supabase.co
 NUXT_PUBLIC_SUPABASE_KEY=<your-supabase-anon-key>
 NUXT_PUBLIC_BACKEND_URL=https://<your-backend-domain-or-railway-url>
@@ -79,12 +79,12 @@ SENTRY_DSN_FRONTEND=<optional>
 Notes:
 
 - Frontend deployment is handled by Cloudflare Pages Git integration.
-- The workflow validates frontend build output and deploys backend to Railway.
+- The workflow validates frontend build output and triggers backend deployment on Render via deploy hook.
 
 ## 4. Deployment Flow
 
 1. Push to the release branch used by Cloudflare Pages and GitHub Actions.
-2. GitHub Actions runs tests, validates frontend static build, deploys backend.
+2. GitHub Actions runs tests, validates frontend static build, and triggers Render deploy.
 3. Cloudflare Pages builds and publishes frontend from Git.
 4. Verify both public URLs.
 
@@ -113,9 +113,9 @@ Frontend build fails:
 
 Backend deploy fails:
 
-- Check Railway logs.
-- Check RAILWAY_TOKEN in GitHub secrets.
-- Check CLAUDE_API_KEY in Railway variables.
+- Check Render logs.
+- Check RENDER_DEPLOY_HOOK_URL in GitHub secrets.
+- Check CLAUDE_API_KEY in Render environment variables.
 
 Auth redirect issues:
 

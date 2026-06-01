@@ -7,13 +7,13 @@ Docs entry point: DOCS_INDEX.md
 ## Deployment Targets
 
 - Frontend: Cloudflare Pages
-- Backend: Railway
+- Backend: Render
 - Database/Auth: Supabase (hosted)
 
 ## Production URLs (current)
 
 - Frontend: https://flavr-nuxt.pages.dev
-- Backend: https://flavr-production.up.railway.app
+- Backend: https://<your-render-service>.onrender.com
 
 ## Frontend Deployment (Cloudflare Pages)
 
@@ -32,7 +32,7 @@ Node version: 20
 4. Set environment variables in Cloudflare Pages project:
 
 ```text
-NUXT_PUBLIC_BACKEND_URL=https://flavr-production.up.railway.app
+NUXT_PUBLIC_BACKEND_URL=https://<your-render-service>.onrender.com
 NUXT_PUBLIC_SUPABASE_URL=<supabase-url>
 NUXT_PUBLIC_SUPABASE_KEY=<supabase-anon-key>
 NUXT_PUBLIC_SENTRY_DSN=<optional>
@@ -40,11 +40,11 @@ NUXT_PUBLIC_SENTRY_DSN=<optional>
 
 5. Deploy and verify at flavr-nuxt.pages.dev.
 
-## Backend Deployment (Railway)
+## Backend Deployment (Render)
 
-1. Connect repository or use Railway service deployment flow.
+1. Connect repository in Render and create a Web Service from backend.
 2. Build/run from backend workspace.
-3. Set variables in Railway:
+3. Set variables in Render:
 
 ```text
 NODE_ENV=production
@@ -56,7 +56,7 @@ SENTRY_DSN_BACKEND=<optional>
 4. Verify endpoint:
 
 ```bash
-curl https://flavr-production.up.railway.app/health
+curl https://<your-render-service>.onrender.com/health
 ```
 
 ## CI/CD Workflows in Repository
@@ -66,7 +66,7 @@ curl https://flavr-production.up.railway.app/health
   - Uses production base URL by default
 
 - .github/workflows/deploy.yml
-  - Runs backend deploy to Railway
+  - Triggers backend deploy on Render via deploy hook
   - Validates Nuxt static build for Cloudflare Pages compatibility
   - Frontend publishing itself is handled by Cloudflare Pages Git integration
 
@@ -75,7 +75,7 @@ curl https://flavr-production.up.railway.app/health
 1. Push changes to nuxt_js.
 2. Confirm E2E workflow status in GitHub Actions.
 3. Verify Cloudflare Pages deploy succeeded.
-4. Verify Railway service health.
+4. Verify Render service health.
 5. Smoke test login, recipe CRUD, AI flow, and Bring export.
 
 ## Post-Deploy Validation Checklist
@@ -95,9 +95,9 @@ curl https://flavr-production.up.railway.app/health
 - Confirm output directory is .output/public.
 - Confirm env vars exist in Cloudflare project settings.
 
-### Backend errors on Railway
+### Backend errors on Render
 
-- Check Railway logs for runtime errors.
+- Check Render logs for runtime errors.
 - Confirm CLAUDE_API_KEY is set.
 - Confirm CORS origin list in backend/src/index.ts includes active frontend domain.
 

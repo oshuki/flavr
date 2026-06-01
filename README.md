@@ -12,7 +12,7 @@ Primary status and architecture docs:
 - Backend: Express + Hono API proxy (backend/)
 - Database/Auth: Supabase
 - AI: Claude via backend proxy, Pollinations image generation
-- Hosting: Cloudflare Pages (frontend), Railway (backend)
+- Hosting: Cloudflare Pages (frontend), Render (backend)
 - Testing: Playwright E2E (frontend), Vitest (backend)
 
 ## Main Features
@@ -108,7 +108,7 @@ npm run test:coverage
 ## Deployment
 
 - Frontend production target: Cloudflare Pages
-- Backend production target: Railway
+- Backend production target: Render
 
 Reference docs:
 - DEPLOYMENT.md

@@ -10,7 +10,7 @@ See also: DOCS_INDEX.md for a mobile-friendly documentation entry point.
 
 - Project state: production running, core features implemented.
 - Frontend: Nuxt 4 SPA, deployed on Cloudflare Pages.
-- Backend: Express host + Hono API proxy, deployed on Railway.
+- Backend: Express host + Hono API proxy, deployed on Render.
 - Data/Auth: Supabase (Postgres + Auth + RLS).
 - AI: Claude API via backend proxy, image generation via Pollinations proxy.
 - Integrations: Bring shopping list integration implemented.
@@ -124,7 +124,7 @@ From backend/src/index.ts:
 ## 4.1 Deployment Targets
 
 - Frontend production: Cloudflare Pages (flavr-nuxt.pages.dev)
-- Backend production: Railway (flavr-production.up.railway.app)
+- Backend production: Render (<your-render-service>.onrender.com)
 
 ## 4.2 CI Workflows
 
@@ -134,7 +134,7 @@ From backend/src/index.ts:
   - Stores reports/videos as artifacts
 
 - .github/workflows/deploy.yml
-  - Deploys backend to Railway on release pushes
+  - Triggers backend deploy on Render via deploy hook
   - Validates Nuxt static build for Cloudflare Pages compatibility
   - Frontend publishing is handled by Cloudflare Pages Git integration
 
