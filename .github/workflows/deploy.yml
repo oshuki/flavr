@@ -122,4 +122,4 @@ jobs:
           fi
 
       - name: Notify Sentry
-        run: echo "Optional: Send deployment event to Sentry"
+        run: 'echo "Optional: Send deployment event to Sentry"'
