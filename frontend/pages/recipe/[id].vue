@@ -152,6 +152,13 @@
       </div>
     </template>
 
+    <!-- Bring! Toast -->
+    <Transition name="toast">
+      <div v-if="bringToast" class="bring-toast" :class="bringToast.ok ? 'toast-ok' : 'toast-err'">
+        {{ bringToast.ok ? '✅' : '❌' }} {{ bringToast.msg }}
+      </div>
+    </Transition>
+
     <!-- Delete modal -->
     <div v-if="showDeleteModal" class="modal-overlay" @click="showDeleteModal = false">
       <div class="modal" @click.stop>
@@ -178,6 +185,12 @@ const loading          = ref(true)
 const showDeleteModal  = ref(false)
 const exportingToBring = ref(false)
 const heroImageError   = ref(false)
+const bringToast       = ref<{ ok: boolean; msg: string } | null>(null)
+
+const showToast = (ok: boolean, msg: string) => {
+  bringToast.value = { ok, msg }
+  setTimeout(() => { bringToast.value = null }, 3500)
+}
 
 const recipe = computed(() => recipes.value.find(r => r.id === route.params.id))
 
@@ -231,10 +244,15 @@ const exportToBring = async () => {
       return m ? { name: m[2], spec: m[1] } : { name: ing, spec: '' }
     })
     const result = await bringAddItems(items)
-    if (result.success) alert(`✅ ${items.length} Zutaten zu „${selectedList.value?.name}" hinzugefügt!`)
-    else throw new Error(result.error)
+    if (result.success) {
+      showToast(true, `${items.length} Zutaten zu „${selectedList.value?.name}" hinzugefügt!`)
+    } else if (result.results?.every((r: any) => r.status === 401)) {
+      showToast(false, 'Bring! Sitzung abgelaufen – bitte in Einstellungen neu verbinden')
+    } else {
+      showToast(false, result.error || result.message || 'Fehler beim Export')
+    }
   } catch (e: any) {
-    alert('❌ ' + e.message)
+    showToast(false, e.message || 'Verbindungsfehler')
   } finally { exportingToBring.value = false }
 }
 
@@ -392,6 +410,20 @@ onUnmounted(() => window.removeEventListener('keydown', handleKeydown))
 /* Actions */
 .detail-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 24px; }
 .detail-actions button { flex: 1; min-width: 120px; }
+
+/* Bring! Toast */
+.bring-toast {
+  position: fixed; bottom: calc(env(safe-area-inset-bottom) + 90px);
+  left: 50%; transform: translateX(-50%);
+  padding: 12px 20px; border-radius: 24px;
+  font-size: 14px; font-weight: 700;
+  white-space: nowrap; z-index: 300;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+}
+.toast-ok  { background: #1A7A46; color: #fff; }
+.toast-err { background: #DC2626; color: #fff; }
+.toast-enter-active, .toast-leave-active { transition: opacity 0.25s, transform 0.25s; }
+.toast-enter-from, .toast-leave-to { opacity: 0; transform: translateX(-50%) translateY(12px); }
 
 /* Similar recipes */
 .similar-grid {

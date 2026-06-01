@@ -154,31 +154,38 @@
           </div>
         </div>
 
-        <!-- Image URL (optional) -->
+        <!-- Image -->
         <div class="form-section">
-          <div class="form-group">
-            <label class="form-label" for="imageUrl">Bild-URL (optional)</label>
-            <div class="image-input-with-ai">
+          <label class="form-label">Bild (optional)</label>
+
+          <!-- Preview -->
+          <div v-if="formData.imageUrl" class="image-preview">
+            <img :src="formData.imageUrl" alt="Vorschau">
+            <button type="button" class="btn-remove-img" @click="formData.imageUrl = ''">✕</button>
+          </div>
+
+          <div v-if="!formData.imageUrl" class="image-actions">
+            <!-- Upload -->
+            <label class="btn-upload">
+              {{ uploading ? '⏳ Lädt hoch…' : '📷 Eigenes Foto' }}
               <input
-                id="imageUrl"
-                v-model="formData.imageUrl"
-                type="url"
-                class="form-input"
-                placeholder="https://..."
+                type="file"
+                accept="image/*"
+                style="display:none"
+                :disabled="uploading"
+                @change="handleImageUpload"
               >
-              <button
-                type="button"
-                class="btn-ai"
-                @click="handleGenerateImage"
-                :disabled="!formData.title || isGeneratingImage"
-                title="KI-Bild generieren"
-              >
-                {{ isGeneratingImage ? '🎨 Generiere...' : '✨ KI-Bild' }}
-              </button>
-            </div>
-            <div v-if="formData.imageUrl" class="image-preview">
-              <img :src="formData.imageUrl" alt="Vorschau">
-            </div>
+            </label>
+
+            <!-- KI-Bild -->
+            <button
+              type="button"
+              class="btn-ai"
+              @click="handleGenerateImage"
+              :disabled="!formData.title || isGeneratingImage"
+            >
+              {{ isGeneratingImage ? '🎨 Generiere…' : '✨ KI-Bild' }}
+            </button>
           </div>
         </div>
 
@@ -203,6 +210,27 @@ const route = useRoute()
 const { recipes, saveRecipe } = useRecipes()
 const { categories, emoji, categorizeRecipe } = useCategories()
 const { generateRecipeImage, isGenerating: isGeneratingImage } = useImageGeneration()
+const supabase = useSupabaseClient()
+const user = useSupabaseUser()
+const uploading = ref(false)
+
+const handleImageUpload = async (e: Event) => {
+  const file = (e.target as HTMLInputElement).files?.[0]
+  if (!file) return
+  uploading.value = true
+  try {
+    const ext = file.name.split('.').pop()
+    const path = `${user.value?.id}/${Date.now()}.${ext}`
+    const { error } = await supabase.storage.from('recipe-images').upload(path, file, { upsert: true })
+    if (error) throw error
+    const { data } = supabase.storage.from('recipe-images').getPublicUrl(path)
+    formData.value.imageUrl = data.publicUrl
+  } catch (e: any) {
+    alert('Upload fehlgeschlagen: ' + e.message)
+  } finally {
+    uploading.value = false
+  }
+}
 
 // Check if recipe exists to determine edit mode
 const existingRecipe = computed(() => {
@@ -336,7 +364,12 @@ const handleKeydown = (e: KeyboardEvent) => {
 // Load existing recipe for edit
 onMounted(() => {
   if (existingRecipe.value) {
-    formData.value = { ...existingRecipe.value }
+    formData.value = {
+      ...existingRecipe.value,
+      ingredients: [...existingRecipe.value.ingredients],
+      steps: [...existingRecipe.value.steps],
+      tags: [...existingRecipe.value.tags],
+    }
     tagsInput.value = existingRecipe.value.tags?.join(', ') || ''
   }
   
@@ -501,27 +534,33 @@ onUnmounted(() => {
 }
 
 .image-preview {
-  margin-top: 12px;
+  position: relative;
   border-radius: 12px;
   overflow: hidden;
   max-width: 300px;
+  margin-bottom: 12px;
+}
+.image-preview img { width: 100%; height: auto; display: block; }
+.btn-remove-img {
+  position: absolute; top: 8px; right: 8px;
+  width: 28px; height: 28px; border-radius: 50%;
+  background: rgba(0,0,0,0.55); color: #fff;
+  border: none; font-size: 13px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
 }
 
-.image-preview img {
-  width: 100%;
-  height: auto;
-  display: block;
+.image-actions {
+  display: flex; gap: 10px; flex-wrap: wrap;
 }
 
-.image-input-with-ai {
-  display: flex;
-  gap: 12px;
-  align-items: stretch;
+.btn-upload {
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 12px 20px; border-radius: 12px;
+  background: var(--surface2); border: 1.5px dashed var(--border);
+  font-size: 14px; font-weight: 600; color: var(--text-mid);
+  cursor: pointer; transition: border-color 0.15s, background 0.15s;
 }
-
-.image-input-with-ai .form-input {
-  flex: 1;
-}
+.btn-upload:hover { border-color: var(--primary); background: var(--primary-light); }
 
 .btn-ai {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
