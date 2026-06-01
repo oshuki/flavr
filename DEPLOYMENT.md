@@ -66,8 +66,9 @@ curl https://flavr-production.up.railway.app/health
   - Uses production base URL by default
 
 - .github/workflows/deploy.yml
-  - Contains legacy Netlify-focused deployment steps
-  - Keep as historical/optional until fully replaced by Cloudflare-specific workflow
+  - Runs backend deploy to Railway
+  - Validates Nuxt static build for Cloudflare Pages compatibility
+  - Frontend publishing itself is handled by Cloudflare Pages Git integration
 
 ## Release Flow (recommended)
 

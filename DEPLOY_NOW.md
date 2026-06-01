@@ -1,100 +1,58 @@
-# 🚀 DEPLOYMENT CHECKLISTE - Mach diese 3 Schritte
+# Deploy Now - Checkliste
 
-## ✅ VORBEREITUNG ABGESCHLOSSEN
-- ✅ Code committet und gepusht
-- ✅ Deployment-Configs erstellt
-- ✅ Environment-Templates erstellt
-- ✅ Alles deployment-ready!
+Last updated: 2026-06-01
 
----
+## 1) Railway Backend deployen
 
-## 🎯 DU MUSST NUR NOCH:
+- Service aus backend/ bauen und starten
+- Variablen setzen:
 
-### SCHRITT 1: Backend auf Railway (5 Min) 🚂
+```text
+NODE_ENV=production
+PORT=3000
+CLAUDE_API_KEY=<secret>
+SENTRY_DSN_BACKEND=<optional>
+```
 
-1. **Öffne**: https://railway.app
-2. **Login** mit GitHub
-3. **Klick**: "New Project" → "Deploy from GitHub repo"
-4. **Wähle**: `oshuki/flavr` Repository
-5. **Wähle Branch**: `nuxt_js`
-6. **Railway baut automatisch!**
-7. **Gehe zu**: Settings → Variables
-8. **Kopiere aus** `backend/.env.production.template`:
-   ```
-   NODE_ENV=production
-   PORT=3000
-   ANTHROPIC_API_KEY=<DEIN_KEY>
-   BRING_API_KEY=cof4Nc6D8saplXjE3h3HXqHH8m7VU2i1Gs0g85Sp
-   ```
-9. **Notiere dir**: Settings → Networking → Public URL
-   - z.B. `https://flavr-backend-production.up.railway.app`
+- Öffentliche URL merken: https://<backend>.up.railway.app
 
----
+## 2) Cloudflare Pages Frontend deployen
 
-### SCHRITT 2: Frontend auf Netlify (5 Min) 🌐
+- Repo verbinden
+- Branch auswählen
+- Build-Konfiguration:
 
-1. **Öffne**: https://netlify.com
-2. **Login** mit GitHub
-3. **Klick**: "Add new site" → "Import an existing project"
-4. **Wähle**: `oshuki/flavr` Repository
-5. **Wähle Branch**: `nuxt_js`
-6. **Configure**:
-   - Base directory: `frontend`
-   - Build command: `npm install && npm run generate`
-   - Publish directory: `.output/public`
-7. **Klick**: "Deploy"
-8. **Warte** 2-3 Minuten
-9. **Gehe zu**: Site settings → Environment variables
-10. **Kopiere aus** `frontend/.env.production.template`:
-    ```
-    NUXT_PUBLIC_BACKEND_URL=<DEINE_RAILWAY_URL_AUS_SCHRITT_1>
-    NUXT_PUBLIC_SUPABASE_URL=https://htescszituyzooubmxkh.supabase.co
-    NUXT_PUBLIC_SUPABASE_KEY=eyJhbGc...
-    ```
-11. **Wichtig**: Ersetze `<DEINE_RAILWAY_URL_AUS_SCHRITT_1>`!
-12. **Klick**: "Redeploy" (weil Env-Vars geändert)
+```text
+Framework preset: Nuxt.js
+Root directory: frontend
+Build command: npm run generate
+Build output directory: .output/public
+Node version: 20
+```
 
----
+- Variablen setzen:
 
-### SCHRITT 3: Supabase URLs updaten (2 Min) 🔐
+```text
+NUXT_PUBLIC_BACKEND_URL=https://<backend>.up.railway.app
+NUXT_PUBLIC_SUPABASE_URL=https://<project-ref>.supabase.co
+NUXT_PUBLIC_SUPABASE_KEY=<anon-key>
+NUXT_PUBLIC_SENTRY_DSN=<optional>
+```
 
-1. **Öffne**: https://supabase.com → Dein Projekt
-2. **Gehe zu**: Authentication → URL Configuration
-3. **Füge hinzu**:
-   - Site URL: `https://<deine-netlify-url>.netlify.app`
-   - Redirect URLs: `https://<deine-netlify-url>.netlify.app/**`
-4. **Save**
+## 3) Supabase Auth URLs
 
----
+- Site URL: https://<frontend-domain>
+- Redirect URL: https://<frontend-domain>/auth/callback
 
-## 🎉 FERTIG!
+## 4) Finaler Smoke-Test
 
-**Deine App ist jetzt live:**
-- Frontend: https://<deine-url>.netlify.app
-- Backend: https://<deine-url>.railway.app
+```bash
+curl -I https://<frontend-domain>
+curl -sS https://<backend-domain>/health
+```
 
-**PWA installieren:**
-- Desktop: Install-Icon in Chrome Adressleiste
-- Handy: "Add to Home Screen"
+- Login testen
+- Rezepte CRUD testen
+- AI testen
+- Bring-Export testen
 
----
-
-## 🆘 PROBLEME?
-
-### Frontend lädt nicht?
-→ Check Netlify Deploy-Log für Fehler
-→ Check ob alle Env-Vars gesetzt sind
-
-### Backend error?
-→ Check Railway Logs
-→ Check ob ANTHROPIC_API_KEY gesetzt ist
-
-### Login funktioniert nicht?
-→ Check Supabase URLs (Schritt 3)
-→ Check NUXT_PUBLIC_SUPABASE_* Variables
-
----
-
-## ⏱️ GESCHÄTZTE ZEIT: 12 Minuten
-
-Los geht's! 🚀

@@ -134,8 +134,9 @@ From backend/src/index.ts:
   - Stores reports/videos as artifacts
 
 - .github/workflows/deploy.yml
-  - Legacy/secondary deploy workflow targeting Netlify + Railway
-  - Important note: this workflow can drift from actual Cloudflare-first setup
+  - Deploys backend to Railway on release pushes
+  - Validates Nuxt static build for Cloudflare Pages compatibility
+  - Frontend publishing is handled by Cloudflare Pages Git integration
 
 ## 5) Current Reality Check (important)
 
