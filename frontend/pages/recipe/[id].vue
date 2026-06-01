@@ -12,7 +12,7 @@
     <template v-else>
       <!-- Hero image -->
       <div class="detail-hero">
-        <img v-if="recipe.imageUrl" :src="recipe.imageUrl" :alt="recipe.title" class="hero-img">
+        <img v-if="recipe.imageUrl && !heroImageError" :src="recipe.imageUrl" :alt="recipe.title" class="hero-img" @error="heroImageError = true">
         <div v-else class="hero-placeholder">
           <span class="hero-emoji">{{ emoji[recipe.category] || '🍽️' }}</span>
         </div>
@@ -70,9 +70,16 @@
 
         <!-- Ingredients -->
         <section class="content-section">
-          <h2 class="section-heading">Zutaten</h2>
+          <div class="section-heading-row">
+            <h2 class="section-heading">Zutaten</h2>
+            <div class="serving-control">
+              <button class="serving-btn" @click="servings = Math.max(1, servings - 1)">−</button>
+              <span class="serving-count">{{ servings }} Pers.</span>
+              <button class="serving-btn" @click="servings++">+</button>
+            </div>
+          </div>
           <ul class="ingredient-list">
-            <li v-for="(ing, i) in recipe.ingredients" :key="i" class="ingredient-item">
+            <li v-for="(ing, i) in scaledIngredients" :key="i" class="ingredient-item">
               <div class="ingredient-dot"></div>
               <span>{{ ing }}</span>
             </li>
@@ -101,6 +108,31 @@
 
         <!-- Source -->
         <p v-if="recipe.sourceApp" class="source-info">Importiert aus: {{ recipe.sourceApp }}</p>
+
+        <!-- Similar recipes -->
+        <template v-if="similarRecipes.length">
+          <div class="section-divider"></div>
+          <section class="content-section">
+            <h2 class="section-heading">Ähnliche Rezepte</h2>
+            <div class="similar-grid">
+              <div
+                v-for="r in similarRecipes"
+                :key="r.id"
+                class="similar-card"
+                @click="navigateTo(`/recipe/${r.id}`)"
+              >
+                <div class="similar-img">
+                  <img v-if="r.imageUrl" :src="r.imageUrl" :alt="r.title" @error="(e) => (e.target as HTMLImageElement).style.display='none'">
+                  <span v-else class="similar-emoji">{{ emoji[r.category] || '🍽️' }}</span>
+                </div>
+                <div class="similar-body">
+                  <p class="similar-title">{{ r.title }}</p>
+                  <p class="similar-meta">{{ r.duration ? r.duration + ' Min.' : '' }}{{ r.duration && r.servings ? ' · ' : '' }}{{ r.servings ? r.servings + ' Pers.' : '' }}</p>
+                </div>
+              </div>
+            </div>
+          </section>
+        </template>
 
         <!-- Actions -->
         <div class="detail-actions">
@@ -145,8 +177,34 @@ const { isConnected: bringConnected, selectedList, bringAddItems, loadBringData 
 const loading          = ref(true)
 const showDeleteModal  = ref(false)
 const exportingToBring = ref(false)
+const heroImageError   = ref(false)
 
 const recipe = computed(() => recipes.value.find(r => r.id === route.params.id))
+
+const servings = ref(1)
+watch(recipe, r => { if (r?.servings) servings.value = r.servings }, { immediate: true })
+
+const similarRecipes = computed(() => {
+  if (!recipe.value) return []
+  return recipes.value
+    .filter(r => r.id !== recipe.value!.id && r.category === recipe.value!.category)
+    .sort(() => Math.random() - 0.5)
+    .slice(0, 4)
+})
+
+const scaledIngredients = computed(() => {
+  if (!recipe.value) return []
+  const base = recipe.value.servings || 1
+  const factor = servings.value / base
+  if (factor === 1) return recipe.value.ingredients
+  return recipe.value.ingredients.map(ing => {
+    return ing.replace(/(\d+([.,]\d+)?)/g, (_, num) => {
+      const scaled = parseFloat(num.replace(',', '.')) * factor
+      const rounded = Math.round(scaled * 10) / 10
+      return rounded % 1 === 0 ? String(rounded) : String(rounded).replace('.', ',')
+    })
+  })
+})
 
 const editRecipe = () => navigateTo(`/recipe/edit/${route.params.id}`)
 
@@ -280,6 +338,25 @@ onUnmounted(() => window.removeEventListener('keydown', handleKeydown))
   letter-spacing: -0.4px; margin-bottom: 14px;
 }
 
+.section-heading-row {
+  display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px;
+}
+.section-heading-row .section-heading { margin-bottom: 0; }
+
+.serving-control {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--surface2); border-radius: var(--radius-sm); padding: 4px 6px;
+}
+.serving-btn {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: var(--bg); border: 1px solid var(--border);
+  font-size: 16px; font-weight: 700; color: var(--primary);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: background 0.15s;
+}
+.serving-btn:hover { background: var(--primary-light); }
+.serving-count { font-size: 13px; font-weight: 700; color: var(--text); min-width: 52px; text-align: center; }
+
 /* Ingredients */
 .ingredient-list { list-style: none; padding: 0; }
 .ingredient-item {
@@ -315,6 +392,34 @@ onUnmounted(() => window.removeEventListener('keydown', handleKeydown))
 /* Actions */
 .detail-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 24px; }
 .detail-actions button { flex: 1; min-width: 120px; }
+
+/* Similar recipes */
+.similar-grid {
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;
+}
+.similar-card {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px; border-radius: var(--radius);
+  border: 1px solid var(--border); background: var(--surface);
+  cursor: pointer; transition: box-shadow 0.15s, border-color 0.15s;
+}
+.similar-card:hover { border-color: var(--primary); box-shadow: 0 2px 10px rgba(26,122,70,0.1); }
+.similar-img {
+  width: 52px; height: 52px; border-radius: 10px;
+  overflow: hidden; flex-shrink: 0;
+  background: var(--surface2);
+  display: flex; align-items: center; justify-content: center;
+}
+.similar-img img { width: 100%; height: 100%; object-fit: cover; }
+.similar-emoji { font-size: 24px; }
+.similar-body { min-width: 0; }
+.similar-title {
+  font-size: 13px; font-weight: 700; color: var(--text);
+  line-height: 1.3; margin-bottom: 3px;
+  overflow: hidden; text-overflow: ellipsis;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+}
+.similar-meta { font-size: 11px; color: var(--muted); font-weight: 500; }
 
 /* Modal */
 .modal-overlay {

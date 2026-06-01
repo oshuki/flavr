@@ -4,24 +4,28 @@ export const useAI = () => {
   const config = useRuntimeConfig()
   const backendUrl = config.public.backendUrl
 
-  const callClaude = async (messages: any[]) => {
+  const callClaude = async (messages: any[], system?: string) => {
+    const body: any = {
+      model: 'claude-sonnet-4-6',
+      max_tokens: 2000,
+      messages
+    }
+    if (system) {
+      body.system = [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }]
+    }
     const response = await $fetch(`${backendUrl}/api/claude`, {
       method: 'POST',
-      body: {
-        model: 'claude-sonnet-4-6',
-        max_tokens: 2000,
-        messages
-      }
+      body
     })
     return response
   }
 
   const parseRecipeFromText = async (text: string): Promise<any> => {
     const systemPrompt = `Extract recipe from text. Return JSON with: title, ingredients (array), steps (array), duration (minutes), servings.`
-    
+
     const response = await callClaude([
-      { role: 'user', content: `${systemPrompt}\n\n${text}` }
-    ])
+      { role: 'user', content: text }
+    ], systemPrompt)
     
     try {
       const content = response.content[0]?.text || '{}'
@@ -37,29 +41,28 @@ export const useAI = () => {
   }
 
   const suggestRecipes = async (ingredients: string[]): Promise<AIRecipeSuggestion[]> => {
-    const ingredientsText = ingredients.join(', ')
-    const systemPrompt = `Given these ingredients: ${ingredientsText}, suggest 3 recipes in German for 4 people.
+    const systemPrompt = `Du bist ein Rezept-Assistent. Schlage 3 Rezepte auf Deutsch vor.
 
-IMPORTANT: Return ONLY a JSON array (no markdown, no text). Use this exact format:
+WICHTIG: Antworte NUR mit einem JSON-Array (kein Markdown, kein Text). Exaktes Format:
 [{
-  "title": "Recipe name",
-  "ingredients": ["200g ingredient 1", "3 EL ingredient 2", "1 Prise ingredient 3"],
-  "steps": ["step 1", "step 2"],
+  "title": "Rezeptname",
+  "ingredients": ["200g Zutat 1", "3 EL Zutat 2", "1 Prise Zutat 3"],
+  "steps": ["Schritt 1", "Schritt 2"],
   "duration": 30,
   "servings": 4
 }]
 
-Rules:
-- duration must be a NUMBER (minutes as integer)
-- servings must be a NUMBER (integer, default 4)
-- ingredients must include QUANTITIES (e.g., "200g Mehl", "3 Eier", "1 TL Salz", "2 EL Öl")
-- Write in German
-- Return 3 different recipes
-- Always for 4 people unless ingredients are clearly limited`
-    
+Regeln:
+- duration muss eine ZAHL sein (Minuten als Integer)
+- servings muss eine ZAHL sein (Integer, Standard 4)
+- ingredients müssen MENGENANGABEN enthalten (z.B. "200g Mehl", "3 Eier", "1 TL Salz")
+- Auf Deutsch schreiben
+- Genau 3 verschiedene Rezepte
+- Immer für 4 Personen, außer die Zutatenmengen lassen weniger vermuten`
+
     const response = await callClaude([
-      { role: 'user', content: systemPrompt }
-    ])
+      { role: 'user', content: `Zutaten: ${ingredients.join(', ')}` }
+    ], systemPrompt)
     
     try {
       const content = response.content[0]?.text || '[]'
@@ -75,25 +78,20 @@ Rules:
   }
 
   const parseRecipeFromImage = async (imageBase64: string): Promise<any> => {
+    const systemPrompt = `Extrahiere Zutaten oder Rezepte aus Bildern. Antworte NUR mit JSON: { title, ingredients (array), steps (array), duration (Minuten), servings }.`
+
     const response = await callClaude([
       {
         role: 'user',
         content: [
           {
             type: 'image',
-            source: {
-              type: 'base64',
-              media_type: 'image/jpeg',
-              data: imageBase64
-            }
+            source: { type: 'base64', media_type: 'image/jpeg', data: imageBase64 }
           },
-          {
-            type: 'text',
-            text: 'Extract recipe from this image. Return JSON with: title, ingredients (array), steps (array), duration, servings.'
-          }
+          { type: 'text', text: 'Was siehst du? Extrahiere das Rezept.' }
         ]
       }
-    ])
+    ], systemPrompt)
     
     try {
       const content = response.content[0]?.text || '{}'

@@ -75,17 +75,11 @@ export const useRecipes = () => {
 
   // Save (create or update) recipe
   const saveRecipe = async (recipe: Recipe) => {
-    if (!user.value) {
-      console.error('No user logged in!')
-      throw new Error('User not authenticated')
-    }
+    if (!user.value) throw new Error('User not authenticated')
     
     const userId = user.value.id || (user.value as any).sub
-    console.log('Current user:', user.value)
-    console.log('Current user ID:', userId)
-    
+
     const row = recipeToRow(recipe)
-    console.log('Recipe row to save:', row)
     
     const { data, error } = await supabase
       .from('recipes')

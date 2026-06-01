@@ -42,6 +42,16 @@
             {{ recipes.length }} Rezepte
           </div>
         </div>
+
+        <div class="settings-row">
+          <div class="setting-info">
+            <div class="setting-label">Duplikate finden</div>
+            <div class="setting-sub">Ähnliche oder doppelte Rezepte erkennen und löschen</div>
+          </div>
+          <button class="btn-secondary" @click="navigateTo('/duplicates')">
+            🔍 Scanner
+          </button>
+        </div>
       </div>
 
       <!-- Import from Text/URL -->

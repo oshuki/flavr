@@ -2,46 +2,51 @@
   <div class="recipes-page">
     <!-- Header -->
     <div class="page-header">
-      <img src="/flavr-logo-2.png" alt="flavr" class="header-logo">
-      <div class="header-actions">
-        <button class="icon-btn" :class="{ active: onlyFavs }" @click="onlyFavs = !onlyFavs" aria-label="Favoriten">
-          <svg width="18" height="18" viewBox="0 0 24 24" :fill="onlyFavs ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-          </svg>
-        </button>
-        <button class="icon-btn" :class="{ active: showSearch }" @click="showSearch = !showSearch" aria-label="Suchen">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-          </svg>
-        </button>
+      <img src="/flavr-logo-2.png" alt="flavr" class="header-logo" @click="navigateTo('/recipes')" style="cursor: pointer;">
+      <div class="header-search">
+        <svg class="search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+        </svg>
+        <input
+          v-model="searchQuery"
+          type="search"
+          class="header-search-input"
+          placeholder="Suchen…"
+        >
       </div>
     </div>
 
-    <!-- Search bar (collapsible) -->
-    <div v-if="showSearch" class="search-bar">
-      <input
-        v-model="searchQuery"
-        type="search"
-        class="form-input search-input"
-        placeholder="Rezepte oder Zutaten suchen…"
-        autofocus
-      >
+    <!-- Quick filters + sort -->
+    <div class="quick-filters">
+      <div class="filter-chips">
+        <button class="chip" :class="{ active: quickFilter === 'fast' }" @click="toggleQuickFilter('fast')">⚡ &lt; 30 Min.</button>
+        <button class="chip" :class="{ active: quickFilter === 'ai' }" @click="toggleQuickFilter('ai')">✨ KI-generiert</button>
+        <button class="chip" :class="{ active: onlyFavs }" @click="onlyFavs = !onlyFavs">♥ Favoriten</button>
+      </div>
+      <select v-model="sortBy" class="sort-select">
+        <option value="newest">Neueste</option>
+        <option value="oldest">Älteste</option>
+        <option value="az">A – Z</option>
+        <option value="duration">Kürzeste Zeit</option>
+      </select>
     </div>
 
     <!-- Category circles (stories-style) -->
-    <div class="cat-scroll">
-      <button
-        v-for="cat in categories"
-        :key="cat"
-        class="cat-circle"
-        :class="{ active: activeCategory === cat }"
-        @click="setCategory(cat)"
-      >
-        <div class="cat-circle-inner">
-          <span class="cat-emoji">{{ emoji[cat] || '🍽️' }}</span>
-        </div>
-        <span class="cat-label">{{ cat }}</span>
-      </button>
+    <div class="cat-scroll-wrap">
+      <div class="cat-scroll">
+        <button
+          v-for="cat in categories"
+          :key="cat"
+          class="cat-circle"
+          :class="{ active: activeCategory === cat }"
+          @click="setCategory(cat)"
+        >
+          <div class="cat-circle-inner">
+            <span class="cat-emoji">{{ emoji[cat] || '🍽️' }}</span>
+          </div>
+          <span class="cat-label">{{ cat }}</span>
+        </button>
+      </div>
     </div>
 
     <!-- Loading -->
@@ -80,25 +85,45 @@
 
 <script setup lang="ts">
 const { recipes, loadRecipes, loading, toggleFavorite } = useRecipes()
-const { categories, emoji, activeCategory, setCategory } = useCategories()
+const { categories, emoji, activeCategory, setCategory, tags: catTags } = useCategories()
 
-const searchQuery   = ref('')
-const onlyFavs      = ref(false)
-const showSearch    = ref(false)
+const searchQuery  = ref('')
+const onlyFavs     = ref(false)
+const sortBy       = ref('newest')
+const quickFilter  = ref<'fast' | 'ai' | null>(null)
+
+const toggleQuickFilter = (f: 'fast' | 'ai') => {
+  quickFilter.value = quickFilter.value === f ? null : f
+}
 
 const createNewRecipe = () => {
   navigateTo(`/recipe/edit/${crypto.randomUUID()}`)
 }
 
 const filteredRecipes = computed(() => {
-  return recipes.value.filter(r => {
-    const matchesCat    = activeCategory.value === 'Alle' || r.category === activeCategory.value
-    const matchesSearch = !searchQuery.value ||
-      r.title.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-      r.ingredients.some(i => i.toLowerCase().includes(searchQuery.value.toLowerCase()))
-    const matchesFavs   = !onlyFavs.value || r.isFavorite
-    return matchesCat && matchesSearch && matchesFavs
+  const q = searchQuery.value.toLowerCase()
+  let result = recipes.value.filter(r => {
+    const recipeText = `${r.title} ${r.ingredients.join(' ')} ${r.tags.join(' ')}`.toLowerCase()
+    const keywords = catTags[activeCategory.value]
+    const matchesCat = activeCategory.value === 'Alle'
+      || r.category === activeCategory.value
+      || (keywords ? keywords.some(kw => recipeText.includes(kw)) : false)
+    const matchesSearch = !q
+      || r.title.toLowerCase().includes(q)
+      || r.ingredients.some(i => i.toLowerCase().includes(q))
+      || r.tags.some(t => t.toLowerCase().includes(q))
+    const matchesFavs  = !onlyFavs.value || r.isFavorite
+    const matchesFast  = quickFilter.value !== 'fast' || (!!r.duration && r.duration <= 30)
+    const matchesAI    = quickFilter.value !== 'ai' || r.tags.some(t => t.toLowerCase() === 'ki-generiert')
+    return matchesCat && matchesSearch && matchesFavs && matchesFast && matchesAI
   })
+
+  if (sortBy.value === 'oldest')   result = [...result].sort((a, b) => a.createdAt - b.createdAt)
+  else if (sortBy.value === 'az')  result = [...result].sort((a, b) => a.title.localeCompare(b.title, 'de'))
+  else if (sortBy.value === 'duration') result = [...result].sort((a, b) => (a.duration || 999) - (b.duration || 999))
+  else                             result = [...result].sort((a, b) => b.createdAt - a.createdAt)
+
+  return result
 })
 
 onMounted(() => { loadRecipes() })
@@ -122,26 +147,61 @@ onMounted(() => { loadRecipes() })
   display: flex; align-items: center; justify-content: space-between;
 }
 
-.header-logo { height: 28px; width: auto; }
+.header-logo { height: 28px; width: auto; flex-shrink: 0; }
 
-.header-actions { display: flex; gap: 8px; }
-
-.icon-btn {
-  width: 36px; height: 36px;
-  background: var(--surface2);
-  border: none; border-radius: 10px;
-  display: flex; align-items: center; justify-content: center;
-  cursor: pointer; color: var(--muted);
-  transition: background 0.15s, color 0.15s;
+.header-search {
+  flex: 1; max-width: 280px;
+  display: flex; align-items: center; gap: 8px;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 10px; padding: 0 12px; height: 36px;
 }
-.icon-btn:hover  { background: var(--primary-light); color: var(--primary); }
-.icon-btn.active { background: var(--primary-light); color: var(--primary); }
+.search-icon { color: var(--muted); flex-shrink: 0; }
+.header-search-input {
+  flex: 1; border: none; background: transparent;
+  font-size: 14px; font-family: 'DM Sans', sans-serif;
+  color: var(--text); outline: none;
+}
+.header-search-input::placeholder { color: var(--muted-light); }
 
-/* Search */
-.search-bar { padding: 10px 16px 0; }
-.search-input { border-radius: 10px; }
+/* Quick filters */
+.quick-filters {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 8px; padding: 6px 12px 10px;
+}
+.filter-chips { display: flex; gap: 6px; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+.filter-chips::-webkit-scrollbar { display: none; }
+.chip {
+  padding: 6px 12px; border-radius: 20px;
+  background: var(--surface2); border: 1px solid var(--border);
+  font-size: 12px; font-weight: 600; color: var(--muted);
+  white-space: nowrap; cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.chip.active {
+  background: var(--primary-light); border-color: var(--primary); color: var(--primary);
+}
+.sort-select {
+  flex-shrink: 0; padding: 6px 10px; border-radius: 20px;
+  border: 1px solid var(--border); background: var(--surface2);
+  font-size: 12px; font-weight: 600; color: var(--muted);
+  font-family: 'DM Sans', sans-serif; cursor: pointer;
+  appearance: none; -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23999' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 8px center;
+  padding-right: 26px;
+}
 
 /* Category circles */
+.cat-scroll-wrap {
+  position: relative;
+}
+.cat-scroll-wrap::after {
+  content: '';
+  position: absolute; top: 0; right: 0; bottom: 0;
+  width: 40px;
+  background: linear-gradient(to right, transparent, var(--bg));
+  pointer-events: none;
+}
 .cat-scroll {
   display: flex; gap: 14px;
   overflow-x: auto; padding: 14px 16px;

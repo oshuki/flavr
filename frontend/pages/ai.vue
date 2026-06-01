@@ -2,7 +2,7 @@
   <div class="ai-page">
     <!-- Hero -->
     <div class="ai-hero">
-      <img src="/flavr-logo-2.png" alt="flavr" class="ai-logo">
+      <img src="/flavr-logo-2.png" alt="flavr" class="ai-logo" @click="navigateTo('/recipes')" style="cursor: pointer;">
       <h1 class="ai-title">Was ist im Kühlschrank?</h1>
       <p class="ai-sub">Zutaten eingeben – die KI schlägt passende Rezepte vor.</p>
     </div>
@@ -85,9 +85,44 @@
         <button class="btn-secondary" @click="error = ''">Erneut versuchen</button>
       </div>
 
-      <!-- Suggestions -->
+      <!-- Local matches -->
+      <section v-if="localMatches.length" class="suggestions">
+        <div class="local-header">
+          <h2 class="section-title">{{ localMatches.length }} Treffer in deiner Sammlung</h2>
+          <button class="btn-ask-ai" @click="forceAI" :disabled="loading">✨ KI fragen</button>
+        </div>
+        <div class="suggestion-list">
+          <div
+            v-for="r in localMatches"
+            :key="r.id"
+            class="suggestion-card local-card"
+            @click="navigateTo(`/recipe/${r.id}`)"
+          >
+            <div class="suggestion-content">
+              <h3 class="suggestion-name">{{ r.title }}</h3>
+              <div class="suggestion-meta">
+                <span v-if="r.duration">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                  {{ r.duration }} Min.
+                </span>
+                <span v-if="r.servings">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                  {{ r.servings }} Pers.
+                </span>
+                <span class="local-badge">📚 Gespeichert</span>
+              </div>
+              <div class="suggestion-ings">
+                <span v-for="tag in r.tags.slice(0, 3)" :key="tag" class="tag">{{ tag }}</span>
+              </div>
+            </div>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--muted-light)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+          </div>
+        </div>
+      </section>
+
+      <!-- AI Suggestions -->
       <section v-if="suggestions.length" class="suggestions">
-        <h2 class="section-title">{{ suggestions.length }} Vorschläge</h2>
+        <h2 class="section-title">{{ suggestions.length }} KI-Vorschläge</h2>
         <div class="suggestion-list">
           <div
             v-for="(s, i) in suggestions"
@@ -133,11 +168,12 @@
 import type { AIRecipeSuggestion } from '~/types'
 
 const { suggestRecipes, parseRecipeFromImage } = useAI()
-const { saveRecipe } = useRecipes()
+const { saveRecipe, recipes, loadRecipes } = useRecipes()
 const { categorizeRecipe } = useCategories()
 
 const ingredients    = ref<string[]>([])
 const suggestions    = ref<AIRecipeSuggestion[]>([])
+const localMatches   = ref<any[]>([])
 const loading        = ref(false)
 const loadingMessage = ref('')
 const error          = ref('')
@@ -145,18 +181,51 @@ const newIngredient  = ref('')
 const photoInput     = ref<HTMLInputElement>()
 const inputRef       = ref<HTMLInputElement>()
 
+const findLocalMatches = (ings: string[]) => {
+  if (!recipes.value.length) return []
+  const terms = ings.map(i => i.toLowerCase())
+  return recipes.value
+    .map(r => {
+      const text = `${r.title} ${r.ingredients.join(' ')} ${r.tags.join(' ')}`.toLowerCase()
+      const hits = terms.filter(t => text.includes(t)).length
+      return { recipe: r, hits }
+    })
+    .filter(({ hits }) => hits >= Math.min(2, terms.length))
+    .sort((a, b) => b.hits - a.hits)
+    .slice(0, 4)
+    .map(({ recipe }) => recipe)
+}
+
 const focusInput = () => inputRef.value?.focus()
 
 const addIngredient = () => {
   const items = newIngredient.value.split(',').map(i => i.trim()).filter(Boolean)
-  if (items.length) { ingredients.value = [...ingredients.value, ...items]; newIngredient.value = '' }
+  if (items.length) { ingredients.value = [...ingredients.value, ...items]; newIngredient.value = ''; localMatches.value = []; suggestions.value = [] }
 }
 
-const removeIngredient = (i: number) => ingredients.value.splice(i, 1)
+const removeIngredient = (i: number) => { ingredients.value.splice(i, 1); localMatches.value = []; suggestions.value = [] }
 
 const getSuggestions = async () => {
   if (!ingredients.value.length) return
-  loading.value = true; loadingMessage.value = 'KI analysiert deine Zutaten…'; error.value = ''; suggestions.value = []
+  error.value = ''; suggestions.value = []
+
+  if (!recipes.value.length) await loadRecipes()
+  const matches = findLocalMatches(ingredients.value)
+  if (matches.length) {
+    localMatches.value = matches
+    return
+  }
+
+  await callAI()
+}
+
+const forceAI = async () => {
+  localMatches.value = []
+  await callAI()
+}
+
+const callAI = async () => {
+  loading.value = true; loadingMessage.value = 'KI analysiert deine Zutaten…'
   try {
     const result = await suggestRecipes(ingredients.value)
     suggestions.value = result
@@ -334,6 +403,22 @@ const createFromSuggestion = async (i: number) => {
 }
 .btn-save:hover { background: var(--primary); color: #fff; }
 .btn-save:disabled { opacity: 0.5; cursor: default; }
+
+/* Local matches */
+.local-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.local-header .section-title { margin-bottom: 0; }
+.btn-ask-ai {
+  padding: 7px 14px; border-radius: 20px;
+  background: var(--primary-light); color: var(--primary);
+  border: 1px solid var(--primary); font-family: 'DM Sans', sans-serif;
+  font-size: 13px; font-weight: 700; cursor: pointer;
+  transition: background 0.15s;
+}
+.btn-ask-ai:hover { background: var(--primary); color: #fff; }
+.btn-ask-ai:disabled { opacity: 0.4; cursor: default; }
+.local-card { cursor: pointer; }
+.local-card:hover { border-color: var(--primary); }
+.local-badge { font-size: 11px; color: var(--primary); font-weight: 600; }
 
 /* Tips */
 .tips { margin-top: 24px; display: flex; flex-direction: column; gap: 8px; }

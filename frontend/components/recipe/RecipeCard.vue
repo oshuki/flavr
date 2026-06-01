@@ -2,7 +2,7 @@
   <div class="recipe-card" @click="$emit('click')">
     <!-- Image area -->
     <div class="recipe-image">
-      <img v-if="recipe.imageUrl" :src="recipe.imageUrl" :alt="recipe.title" loading="lazy">
+      <img v-if="recipe.imageUrl && !imageError" :src="recipe.imageUrl" :alt="recipe.title" loading="lazy" @error="imageError = true">
       <div v-else class="recipe-image-placeholder">
         <span class="placeholder-emoji">{{ emoji[recipe.category] || '🍽️' }}</span>
       </div>
@@ -42,12 +42,14 @@
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue'
 import type { Recipe } from '~/types'
 
 defineProps<{ recipe: Recipe }>()
 defineEmits<{ (e: 'click'): void; (e: 'toggle-fav'): void }>()
 
 const { emoji } = useCategories()
+const imageError = ref(false)
 </script>
 
 <style scoped>
