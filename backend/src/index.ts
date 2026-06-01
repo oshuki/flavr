@@ -402,27 +402,25 @@ app.post('/api/bring/items', async (c) => {
       return c.json({ error: 'Token, UUID, listId und items array erforderlich' }, 400 as any)
     }
 
-    const results = []
-
-    for (const item of items) {
-      const { name, spec = '' } = item
-      if (!name) continue
-
-      const body = `purchase=${encodeURIComponent(name)}&specification=${encodeURIComponent(spec)}&remove=`
-
-      const response = await fetch(`${BRING_API}/bringlists/${listId}`, {
-        method: 'PUT',
-        headers: {
-          ...BRING_HEADERS_BASE,
-          'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
-          'Authorization': `Bearer ${token}`,
-          'X-BRING-USER-UUID': uuid,
-        },
-        body,
-      })
-
-      results.push({ name, ok: response.ok, status: response.status })
+    const headers = {
+      ...BRING_HEADERS_BASE,
+      'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+      'Authorization': `Bearer ${token}`,
+      'X-BRING-USER-UUID': uuid,
     }
+
+    const results = await Promise.all(
+      items
+        .filter((item: any) => !!item.name)
+        .map(async (item: any) => {
+          const { name, spec = '' } = item
+          const body = `purchase=${encodeURIComponent(name)}&specification=${encodeURIComponent(spec)}&remove=`
+          const response = await fetch(`${BRING_API}/bringlists/${listId}`, {
+            method: 'PUT', headers, body,
+          })
+          return { name, ok: response.ok, status: response.status }
+        })
+    )
 
     const allSuccess = results.every(r => r.ok)
 
