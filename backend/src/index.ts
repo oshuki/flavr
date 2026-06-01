@@ -28,14 +28,6 @@ try {
     
     integrations: [
       new RewriteFrames({ root: globalThis?.process?.cwd() || '' }) as any,
-      new Sentry.Integrations.Http({ tracing: true }),
-      new Sentry.Integrations.Console(),
-      new Sentry.Integrations.RequestData({
-        include: {
-          ip: true,
-          user: false, // Keine User-Daten in Request-Body
-        },
-      }),
     ],
     
     // Ignore bestimmte Error-Typen
@@ -54,9 +46,10 @@ try {
       
       // Filter aus Informationen, die nicht gesendet werden sollen
       if (event.request?.data) {
+        const requestData = event.request.data as Record<string, unknown>
         // Entferne potentiell sensitive Daten
-        delete event.request.data.password
-        delete event.request.data.token
+        delete requestData.password
+        delete requestData.token
       }
       
       return event
@@ -449,6 +442,11 @@ app.post('/api/bring/items', async (c) => {
 // ══════════════════════════════════════════════════════════════
 app.onError((err, c) => {
   console.error('Unhandled error:', err)
+
+  const headersObj: Record<string, string> = {}
+  c.req.raw.headers.forEach((value, key) => {
+    headersObj[key] = value
+  })
   
   // Sende zu Sentry
   try {
@@ -457,7 +455,7 @@ app.onError((err, c) => {
         request: {
           method: c.req.method,
           url: c.req.url,
-          headers: Object.fromEntries(c.req.raw.headers),
+          headers: headersObj,
         },
       },
     })
