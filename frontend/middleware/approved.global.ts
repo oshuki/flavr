@@ -1,17 +1,23 @@
-// Unprotected routes that never need approval check
 const PUBLIC = ['/auth', '/auth/callback', '/pending']
 
 export default defineNuxtRouteMiddleware(async (to) => {
   if (PUBLIC.some(p => to.path.startsWith(p))) return
 
-  const user = useSupabaseUser()
-  if (!user.value) return  // supabase module handles redirect to /auth
+  const client = useSupabaseClient()
 
-  // Admin email always gets through without DB check
-  if (user.value.email === 'oshuki@gmail.com') return
+  // Use getSession() directly — waits for async session restore from localStorage
+  const { data: { session } } = await client.auth.getSession()
+  if (!session?.user?.id) return
 
-  const { isApproved, loadProfile } = useProfile()
+  // Admin always gets through
+  if (session.user.email === 'oshuki@gmail.com') return
 
-  if (isApproved.value === null) await loadProfile()
-  if (!isApproved.value) return navigateTo('/pending')
+  // Always fetch fresh from DB — revoked access takes effect on next navigation
+  const { data } = await client
+    .from('profiles')
+    .select('is_approved')
+    .eq('id', session.user.id)
+    .single()
+
+  if (!data?.is_approved) return navigateTo('/pending')
 })

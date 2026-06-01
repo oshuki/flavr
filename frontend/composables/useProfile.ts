@@ -5,12 +5,13 @@ export const useProfile = () => {
   const isApproved = useState<boolean | null>('profile-approved', () => null)
   const isAdmin    = useState<boolean>('profile-admin', () => false)
 
-  const loadProfile = async () => {
-    if (!user.value) return
+  const loadProfile = async (forUserId?: string) => {
+    const uid = forUserId ?? user.value?.id
+    if (!uid) return
     const { data } = await supabase
       .from('profiles')
       .select('is_approved, is_admin')
-      .eq('id', user.value.id)
+      .eq('id', uid)
       .single()
 
     isApproved.value = data?.is_approved ?? false

@@ -56,6 +56,13 @@ const email     = ref('')
 const password  = ref('')
 const isSignUp  = ref(false)
 const error     = ref('')
+const { loadProfile, isApproved } = useProfile()
+
+const redirectAfterLogin = async (userId: string, userEmail: string) => {
+  if (userEmail === 'oshuki@gmail.com') { await navigateTo('/'); return }
+  await loadProfile(userId)
+  await navigateTo(isApproved.value ? '/' : '/pending')
+}
 
 onMounted(() => { if (user.value) navigateTo('/') })
 
@@ -68,9 +75,9 @@ const handleAuth = async () => {
       if (e) throw e
       alert('Account erstellt! Bitte bestätige deine E-Mail.')
     } else {
-      const { error: e } = await client.auth.signInWithPassword({ email: email.value, password: password.value })
+      const { data, error: e } = await client.auth.signInWithPassword({ email: email.value, password: password.value })
       if (e) throw e
-      navigateTo('/')
+      if (data.user) await redirectAfterLogin(data.user.id, data.user.email ?? '')
     }
   } catch (e: any) {
     error.value = e.message || 'Ein Fehler ist aufgetreten'

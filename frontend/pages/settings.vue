@@ -166,6 +166,18 @@
         </div>
       </div>
 
+      <!-- Account -->
+      <div class="settings-section">
+        <h2>👤 Account</h2>
+        <div class="settings-row">
+          <div class="setting-info">
+            <div class="setting-label">Eingeloggt als</div>
+            <div class="setting-sub">{{ user?.email }}</div>
+          </div>
+          <button class="btn-secondary" @click="signOut">Abmelden</button>
+        </div>
+      </div>
+
       <!-- About -->
       <div class="settings-section">
         <div class="about-info">
@@ -340,8 +352,14 @@ Schritte:
 <script setup lang="ts">
 import type { Recipe } from '~/types'
 
+const client = useSupabaseClient()
 const user = useSupabaseUser()
 const { recipes, loadRecipes, saveRecipe, deleteRecipe } = useRecipes()
+
+const signOut = async () => {
+  await client.auth.signOut()
+  navigateTo('/auth')
+}
 const { parseRecipeFromText } = useAI()
 const { categorizeRecipe } = useCategories()
 
