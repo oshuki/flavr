@@ -1,6 +1,6 @@
 # Flavr Architecture and Operations
 
-Last updated: 2026-06-01
+Last updated: 2026-06-03
 
 ## 1. System Overview
 
@@ -48,6 +48,7 @@ Base URL: https://flavr-3m5v.onrender.com
 - GET /health
 - POST /api/claude
 - POST /api/image-proxy
+- POST /api/fetch-url (fetches external HTML server-side, CORS workaround for recipe URL import)
 - POST /api/bring/login
 - POST /api/bring/lists
 - POST /api/bring/items
@@ -95,7 +96,22 @@ GitHub Actions Secrets:
 - SENTRY_DSN_FRONTEND=<optional>
 - RENDER_DEPLOY_HOOK_URL=<optional>
 
-## 6. Operational Checks
+## 6. Supabase Data Model
+
+Tables:
+- recipes — user recipes (id, user_id, title, category, duration, servings, ingredients[], steps[], tags[], notes, image_url, is_favorite, source_app, created_at)
+- meal_plans — weekly meal planner (id, user_id, week_start date, meals jsonb, created_at, updated_at). UNIQUE(user_id, week_start). RLS: users manage own rows.
+- auth.users — managed by Supabase Auth
+
+meal_plans.meals JSON structure:
+```json
+{
+  "mon": { "breakfast": "<recipe-id>", "dinner": "<recipe-id>" },
+  "tue": { "dinner": "<recipe-id>" }
+}
+```
+
+## 7. Operational Checks
 
 Production smoke checks:
 - Frontend: curl -I https://flavr-nuxt.pages.dev
@@ -105,7 +121,7 @@ Production smoke checks:
 Expected backend health response:
 - status: ok
 
-## 7. Security and Maintenance
+## 8. Security and Maintenance
 
 - Keep all secrets out of git-tracked files.
 - Rotate exposed keys immediately if ever pasted or leaked.

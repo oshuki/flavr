@@ -140,10 +140,18 @@
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
                   {{ s.servings }} Pers.
                 </span>
+                <span v-if="ingredients.length" class="match-badge">
+                  {{ getAvailableIngredients(s).length }}/{{ s.ingredients.length }} vorhanden
+                </span>
               </div>
               <div class="suggestion-ings">
-                <span v-for="(ing, j) in s.ingredients.slice(0, 4)" :key="j" class="tag">{{ ing }}</span>
-                <span v-if="s.ingredients.length > 4" class="tag tag-more">+{{ s.ingredients.length - 4 }}</span>
+                <span
+                  v-for="(ing, j) in s.ingredients.slice(0, 5)"
+                  :key="j"
+                  class="tag"
+                  :class="ingredients.length ? (getMissingIngredients(s).includes(ing) ? 'tag-missing' : 'tag-have') : ''"
+                >{{ ing }}</span>
+                <span v-if="s.ingredients.length > 5" class="tag tag-more">+{{ s.ingredients.length - 5 }}</span>
               </div>
             </div>
             <button class="btn-save" @click="createFromSuggestion(i)" :disabled="loading">
@@ -264,6 +272,25 @@ const handlePhotoUpload = async (event: Event) => {
     }
   }
   reader.readAsDataURL(file)
+}
+
+const normalizeIngredient = (s: string) =>
+  s.toLowerCase().replace(/^\d[\d.,/\s]*\s*[a-zäöü]{0,3}\s*/i, '').trim()
+
+const getMissingIngredients = (suggestion: AIRecipeSuggestion) => {
+  const have = ingredients.value.map(normalizeIngredient)
+  return suggestion.ingredients.filter(ing => {
+    const norm = normalizeIngredient(ing)
+    return !have.some(h => norm.includes(h) || h.includes(norm))
+  })
+}
+
+const getAvailableIngredients = (suggestion: AIRecipeSuggestion) => {
+  const have = ingredients.value.map(normalizeIngredient)
+  return suggestion.ingredients.filter(ing => {
+    const norm = normalizeIngredient(ing)
+    return have.some(h => norm.includes(h) || h.includes(norm))
+  })
 }
 
 const createFromSuggestion = async (i: number) => {
@@ -419,6 +446,25 @@ const createFromSuggestion = async (i: number) => {
 .local-card { cursor: pointer; }
 .local-card:hover { border-color: var(--primary); }
 .local-badge { font-size: 11px; color: var(--primary); font-weight: 600; }
+
+.match-badge {
+  font-size: 11px; font-weight: 700;
+  color: var(--primary); background: var(--primary-light);
+  padding: 2px 8px; border-radius: 10px;
+}
+
+.tag-have {
+  background: var(--primary-light);
+  color: var(--primary);
+  border: 1px solid rgba(26,122,70,0.25);
+}
+
+.tag-missing {
+  background: var(--surface2);
+  color: var(--muted);
+  border: 1px dashed var(--border);
+  opacity: 0.8;
+}
 
 /* Tips */
 .tips { margin-top: 24px; display: flex; flex-direction: column; gap: 8px; }

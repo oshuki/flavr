@@ -464,10 +464,18 @@ const importFromUrl = async () => {
   importing.value = true
 
   try {
-    // For now, use text parsing (in production, you might fetch the URL content)
-    const response = await fetch(urlInput.value)
-    const html = await response.text()
-    
+    const backendUrl = useRuntimeConfig().public.backendUrl
+    const proxyRes = await fetch(`${backendUrl}/api/fetch-url`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url: urlInput.value }),
+    })
+    if (!proxyRes.ok) {
+      const err = await proxyRes.json().catch(() => ({}))
+      throw new Error(err.error || `HTTP ${proxyRes.status}`)
+    }
+    const { html } = await proxyRes.json()
+
     // Extract text from HTML (simplified)
     const text = html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
     

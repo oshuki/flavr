@@ -43,3 +43,14 @@ export interface User {
   id: string
   email: string
 }
+
+export interface MealPlanDay {
+  breakfast?: string  // Recipe ID
+  dinner?: string     // Recipe ID
+}
+
+export interface MealPlan {
+  id?: string
+  weekStart: string  // ISO date "2026-06-02" (Monday)
+  meals: Record<string, MealPlanDay>  // key: "mon"|"tue"|"wed"|"thu"|"fri"|"sat"|"sun"
+}

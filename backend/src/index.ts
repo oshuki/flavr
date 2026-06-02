@@ -310,6 +310,55 @@ app.post('/api/image-proxy', async (c) => {
 })
 
 // ══════════════════════════════════════════════════════════════
+// URL FETCH PROXY - Rezept-Import (CORS-Workaround)
+// ══════════════════════════════════════════════════════════════
+app.post('/api/fetch-url', async (c) => {
+  try {
+    const { url } = await c.req.json()
+
+    if (!url || typeof url !== 'string') {
+      return c.json({ error: 'URL erforderlich' }, 400 as any)
+    }
+
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      return c.json({ error: 'Nur HTTP(S)-URLs erlaubt' }, 400 as any)
+    }
+
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 10000)
+
+    try {
+      const response = await fetch(url, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (compatible; Flavr/1.0; recipe-importer)',
+          'Accept': 'text/html,application/xhtml+xml',
+          'Accept-Language': 'de,en;q=0.9',
+        },
+        signal: controller.signal,
+      })
+      clearTimeout(timeout)
+
+      if (!response.ok) {
+        return c.json({ error: `HTTP ${response.status}` }, 502 as any)
+      }
+
+      const html = await response.text()
+      return c.json({ html })
+    } catch (fetchErr: any) {
+      clearTimeout(timeout)
+      if (fetchErr.name === 'AbortError') {
+        return c.json({ error: 'Timeout beim Abrufen der URL' }, 504 as any)
+      }
+      throw fetchErr
+    }
+  } catch (error) {
+    console.error('URL fetch proxy error:', error)
+    try { Sentry.captureException(error) } catch (e) {}
+    return c.json({ error: 'Fetch fehlgeschlagen', details: error instanceof Error ? error.message : String(error) }, 500 as any)
+  }
+})
+
+// ══════════════════════════════════════════════════════════════
 // BRING! API PROXY - Shopping List Integration
 // ══════════════════════════════════════════════════════════════
 const BRING_API = 'https://api.getbring.com/rest/v2'

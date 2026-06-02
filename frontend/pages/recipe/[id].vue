@@ -100,10 +100,24 @@
         </section>
 
         <!-- Notes -->
-        <div v-if="recipe.notes" class="section-divider"></div>
-        <section v-if="recipe.notes" class="content-section">
-          <h2 class="section-heading">Notizen</h2>
-          <p class="notes-text">{{ recipe.notes }}</p>
+        <div class="section-divider"></div>
+        <section class="content-section">
+          <div class="section-heading-row">
+            <h2 class="section-heading">Notizen</h2>
+            <button v-if="!editingNotes" class="btn-notes-edit" @click="startEditNotes">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              {{ recipe.notes ? 'Bearbeiten' : '+ Notiz' }}
+            </button>
+          </div>
+          <div v-if="editingNotes" class="notes-editor">
+            <textarea v-model="editedNotes" class="notes-textarea" rows="4" placeholder="Tipps, Variationen, persönliche Hinweise…" autofocus></textarea>
+            <div class="notes-editor-actions">
+              <button class="btn-secondary" @click="cancelEditNotes">Abbrechen</button>
+              <button class="btn-primary" @click="saveNotes" :disabled="savingNotes">{{ savingNotes ? 'Speichert…' : 'Speichern' }}</button>
+            </div>
+          </div>
+          <p v-else-if="recipe.notes" class="notes-text">{{ recipe.notes }}</p>
+          <p v-else class="notes-empty">Noch keine Notiz. Tippe auf „+ Notiz" um eine hinzuzufügen.</p>
         </section>
 
         <!-- Source -->
@@ -177,7 +191,7 @@
 import type { Recipe } from '~/types'
 
 const route = useRoute()
-const { recipes, loadRecipes, deleteRecipe, toggleFavorite } = useRecipes()
+const { recipes, loadRecipes, deleteRecipe, toggleFavorite, saveRecipe } = useRecipes()
 const { emoji } = useCategories()
 const { isConnected: bringConnected, selectedList, bringAddItems, loadBringData } = useBring()
 
@@ -186,6 +200,9 @@ const showDeleteModal  = ref(false)
 const exportingToBring = ref(false)
 const heroImageError   = ref(false)
 const bringToast       = ref<{ ok: boolean; msg: string } | null>(null)
+const editingNotes     = ref(false)
+const editedNotes      = ref('')
+const savingNotes      = ref(false)
 
 const showToast = (ok: boolean, msg: string) => {
   bringToast.value = { ok, msg }
@@ -218,6 +235,27 @@ const scaledIngredients = computed(() => {
     })
   })
 })
+
+const startEditNotes = () => {
+  editedNotes.value = recipe.value?.notes || ''
+  editingNotes.value = true
+}
+
+const cancelEditNotes = () => {
+  editingNotes.value = false
+  editedNotes.value = ''
+}
+
+const saveNotes = async () => {
+  if (!recipe.value) return
+  savingNotes.value = true
+  try {
+    await saveRecipe({ ...recipe.value, notes: editedNotes.value || undefined })
+    editingNotes.value = false
+  } finally {
+    savingNotes.value = false
+  }
+}
 
 const editRecipe = () => navigateTo(`/recipe/edit/${route.params.id}`)
 
@@ -404,6 +442,31 @@ onUnmounted(() => window.removeEventListener('keydown', handleKeydown))
 .step-text { font-size: 14px; line-height: 1.65; color: var(--text-mid); padding-top: 3px; }
 
 .notes-text { font-size: 14px; line-height: 1.7; color: var(--text-mid); white-space: pre-wrap; }
+
+.notes-empty { font-size: 14px; color: var(--muted-light); font-style: italic; }
+
+.btn-notes-edit {
+  display: flex; align-items: center; gap: 5px;
+  padding: 5px 12px; border-radius: var(--radius-sm);
+  background: var(--surface2); border: 1px solid var(--border);
+  font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600;
+  color: var(--muted); cursor: pointer; transition: border-color 0.15s, color 0.15s;
+}
+.btn-notes-edit:hover { border-color: var(--primary); color: var(--primary); }
+
+.notes-editor { display: flex; flex-direction: column; gap: 10px; }
+
+.notes-textarea {
+  width: 100%; box-sizing: border-box;
+  padding: 12px; border: 1.5px solid var(--border);
+  border-radius: var(--radius); background: var(--surface2);
+  font-family: 'DM Sans', sans-serif; font-size: 14px;
+  color: var(--text); resize: vertical; line-height: 1.6;
+  outline: none; transition: border-color 0.15s;
+}
+.notes-textarea:focus { border-color: var(--primary); }
+
+.notes-editor-actions { display: flex; gap: 8px; justify-content: flex-end; }
 
 .source-info { font-size: 13px; color: var(--muted); font-style: italic; margin-top: 8px; }
 
