@@ -581,4 +581,14 @@ expressApp.listen(port, () => {
   console.log(`     Health Check: curl http://localhost:${port}/health`)
   console.log(`     Claude Proxy: curl -X POST http://localhost:${port}/api/claude`)
   console.log(``)
+
+  // Keep-alive: ping self every 10 minutes so Render free tier doesn't sleep
+  if (process.env.NODE_ENV === 'production') {
+    const selfUrl = process.env.RENDER_EXTERNAL_URL || `http://localhost:${port}`
+    setInterval(async () => {
+      try {
+        await fetch(`${selfUrl}/health`)
+      } catch (e) {}
+    }, 10 * 60 * 1000)
+  }
 })

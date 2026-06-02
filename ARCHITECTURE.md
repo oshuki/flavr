@@ -88,6 +88,7 @@ Render:
 - CLAUDE_API_KEY=<secret>
 - SENTRY_DSN_BACKEND=<optional>
 - USE_MOCK_AI=false
+- RENDER_EXTERNAL_URL=https://flavr-3m5v.onrender.com (used for keep-alive self-ping)
 
 GitHub Actions Secrets:
 - NUXT_PUBLIC_BACKEND_URL=https://flavr-3m5v.onrender.com
