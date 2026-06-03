@@ -74,7 +74,7 @@ app.use('*', cors({
     'https://flavr.9zehn77.de',
   ],
   allowMethods: ['GET', 'POST', 'OPTIONS'],
-  allowHeaders: ['Content-Type', 'Authorization'],
+  allowHeaders: ['Content-Type', 'Authorization', 'Cache-Control'],
 }))
 
 // ══════════════════════════════════════════════════════════════
