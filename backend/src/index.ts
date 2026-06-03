@@ -344,12 +344,18 @@ app.post('/api/unsplash-image', async (c) => {
       headers: { Authorization: `Client-ID ${accessKey}` },
     }).catch(() => {})
 
-    return c.json({
+    return new Response(JSON.stringify({
       url: photo.urls.regular,
       thumb: photo.urls.thumb,
       credit: photo.user.name,
       creditUrl: `${photo.user.links.html}?utm_source=flavr&utm_medium=referral`,
       unsplashUrl: `https://unsplash.com/?utm_source=flavr&utm_medium=referral`,
+    }), {
+      headers: {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-store',
+        'Access-Control-Allow-Origin': '*',
+      },
     })
   } catch (error) {
     console.error('Unsplash error:', error)

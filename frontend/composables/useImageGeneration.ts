@@ -29,7 +29,7 @@ export const useImageGeneration = () => {
 
       const response = await fetch(`${backendUrl}/api/unsplash-image`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' },
         body: JSON.stringify({ query }),
       })
 
