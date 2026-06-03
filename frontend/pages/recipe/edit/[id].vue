@@ -161,7 +161,7 @@
           <!-- Preview -->
           <div v-if="formData.imageUrl" class="image-preview">
             <img :src="formData.imageUrl" alt="Vorschau">
-            <button type="button" class="btn-remove-img" @click="formData.imageUrl = ''; lastCredit = null">✕</button>
+            <button type="button" class="btn-remove-img" @click="formData.imageUrl = ''; lastCredit.value = null">✕</button>
           </div>
           <p v-if="lastCredit" class="unsplash-credit">
             Foto von <a :href="lastCredit.creditUrl" target="_blank" rel="noopener">{{ lastCredit.name }}</a>
