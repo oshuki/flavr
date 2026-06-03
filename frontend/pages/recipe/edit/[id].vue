@@ -161,8 +161,12 @@
           <!-- Preview -->
           <div v-if="formData.imageUrl" class="image-preview">
             <img :src="formData.imageUrl" alt="Vorschau">
-            <button type="button" class="btn-remove-img" @click="formData.imageUrl = ''">✕</button>
+            <button type="button" class="btn-remove-img" @click="formData.imageUrl = ''; lastCredit = null">✕</button>
           </div>
+          <p v-if="lastCredit" class="unsplash-credit">
+            Foto von <a :href="lastCredit.creditUrl" target="_blank" rel="noopener">{{ lastCredit.name }}</a>
+            auf <a :href="lastCredit.unsplashUrl" target="_blank" rel="noopener">Unsplash</a>
+          </p>
 
           <div v-if="!formData.imageUrl" class="image-actions">
             <!-- Upload -->
@@ -209,7 +213,7 @@ import type { Recipe } from '~/types'
 const route = useRoute()
 const { recipes, saveRecipe } = useRecipes()
 const { categories, emoji, categorizeRecipe } = useCategories()
-const { generateRecipeImage, isGenerating: isGeneratingImage } = useImageGeneration()
+const { generateRecipeImage, isGenerating: isGeneratingImage, lastCredit } = useImageGeneration()
 const supabase = useSupabaseClient()
 const user = useSupabaseUser()
 const uploading = ref(false)
@@ -551,6 +555,13 @@ onUnmounted(() => {
 
 .image-actions {
   display: flex; gap: 10px; flex-wrap: wrap;
+}
+
+.unsplash-credit {
+  font-size: 12px; color: var(--muted); margin-top: 6px;
+}
+.unsplash-credit a {
+  color: var(--muted); text-decoration: underline;
 }
 
 .btn-upload {

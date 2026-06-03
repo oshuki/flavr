@@ -339,11 +339,17 @@ app.post('/api/unsplash-image', async (c) => {
       return c.json({ error: 'Kein Bild gefunden' }, 404 as any)
     }
 
+    // Trigger download as required by Unsplash guidelines
+    fetch(photo.links.download_location, {
+      headers: { Authorization: `Client-ID ${accessKey}` },
+    }).catch(() => {})
+
     return c.json({
       url: photo.urls.regular,
       thumb: photo.urls.thumb,
       credit: photo.user.name,
-      creditUrl: photo.user.links.html,
+      creditUrl: `${photo.user.links.html}?utm_source=flavr&utm_medium=referral`,
+      unsplashUrl: `https://unsplash.com/?utm_source=flavr&utm_medium=referral`,
     })
   } catch (error) {
     console.error('Unsplash error:', error)
