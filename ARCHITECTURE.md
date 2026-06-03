@@ -1,6 +1,6 @@
 # Flavr Architecture and Operations
 
-Last updated: 2026-06-03
+Last updated: 2026-06-03 (2)
 
 ## 1. System Overview
 
@@ -48,6 +48,7 @@ Base URL: https://flavr-3m5v.onrender.com
 - GET /health
 - POST /api/claude
 - POST /api/image-proxy
+- POST /api/unsplash-image (searches Unsplash for recipe photos, requires UNSPLASH_ACCESS_KEY)
 - POST /api/fetch-url (fetches external HTML server-side, CORS workaround for recipe URL import)
 - POST /api/bring/login
 - POST /api/bring/lists
@@ -89,6 +90,7 @@ Render:
 - SENTRY_DSN_BACKEND=<optional>
 - USE_MOCK_AI=false
 - RENDER_EXTERNAL_URL=https://flavr-3m5v.onrender.com (used for keep-alive self-ping)
+- UNSPLASH_ACCESS_KEY=<secret> (from unsplash.com/developers, free tier)
 
 GitHub Actions Secrets:
 - NUXT_PUBLIC_BACKEND_URL=https://flavr-3m5v.onrender.com

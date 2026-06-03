@@ -310,6 +310,49 @@ app.post('/api/image-proxy', async (c) => {
 })
 
 // ══════════════════════════════════════════════════════════════
+// UNSPLASH IMAGE SEARCH - Rezeptbilder
+// ══════════════════════════════════════════════════════════════
+app.post('/api/unsplash-image', async (c) => {
+  try {
+    const { query } = await c.req.json()
+    if (!query || typeof query !== 'string') {
+      return c.json({ error: 'Query erforderlich' }, 400 as any)
+    }
+
+    const accessKey = process.env.UNSPLASH_ACCESS_KEY
+    if (!accessKey) {
+      return c.json({ error: 'Unsplash nicht konfiguriert' }, 503 as any)
+    }
+
+    const url = `https://api.unsplash.com/search/photos?query=${encodeURIComponent(query)}&per_page=1&orientation=landscape&content_filter=high`
+    const response = await fetch(url, {
+      headers: { Authorization: `Client-ID ${accessKey}` },
+    })
+
+    if (!response.ok) {
+      return c.json({ error: `Unsplash HTTP ${response.status}` }, 502 as any)
+    }
+
+    const data: any = await response.json()
+    const photo = data.results?.[0]
+    if (!photo) {
+      return c.json({ error: 'Kein Bild gefunden' }, 404 as any)
+    }
+
+    return c.json({
+      url: photo.urls.regular,
+      thumb: photo.urls.thumb,
+      credit: photo.user.name,
+      creditUrl: photo.user.links.html,
+    })
+  } catch (error) {
+    console.error('Unsplash error:', error)
+    try { Sentry.captureException(error) } catch (e) {}
+    return c.json({ error: 'Bildersuche fehlgeschlagen' }, 500 as any)
+  }
+})
+
+// ══════════════════════════════════════════════════════════════
 // URL FETCH PROXY - Rezept-Import (CORS-Workaround)
 // ══════════════════════════════════════════════════════════════
 app.post('/api/fetch-url', async (c) => {

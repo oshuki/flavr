@@ -1,5 +1,4 @@
 export const useImageGeneration = () => {
-  // Only run on client
   if (process.server) {
     return {
       generateRecipeImage: async () => null,
@@ -11,12 +10,6 @@ export const useImageGeneration = () => {
   const backendUrl = config.public.backendUrl
   const isGenerating = useState<boolean>('image-generating', () => false)
 
-  /**
-   * Generate a recipe image using Pollinations AI
-   * @param recipeTitle - The title of the recipe
-   * @param ingredients - Array of ingredients (optional, for better prompts)
-   * @returns URL of the generated image or null
-   */
   const generateRecipeImage = async (
     recipeTitle: string,
     ingredients: string[] = []
@@ -26,36 +19,18 @@ export const useImageGeneration = () => {
     isGenerating.value = true
 
     try {
-      // Create a detailed prompt for food photography
-      const mainIngredient = ingredients.length > 0 
-        ? ingredients[0].split(' ').slice(1).join(' ') // Remove amount, keep ingredient name
-        : ''
-      
-      const prompt = mainIngredient
-        ? `Professional food photography of ${recipeTitle}, featuring ${mainIngredient}, beautifully plated, studio lighting, appetizing, high quality, detailed`
-        : `Professional food photography of ${recipeTitle}, beautifully plated, studio lighting, appetizing, high quality, detailed`
+      const query = [recipeTitle, ...ingredients.slice(0, 2).map(i => i.replace(/^\d[\d.,/\s]*\s*[a-zäöü]{0,3}\s*/i, '').trim())].join(' ')
 
-      // Pollinations API URL with parameters
-      const encodedPrompt = encodeURIComponent(prompt)
-      const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=800&height=600&seed=${Date.now()}&nologo=true`
-
-      // Use backend proxy to avoid CORS issues
-      const response = await fetch(`${backendUrl}/api/image-proxy`, {
+      const response = await fetch(`${backendUrl}/api/unsplash-image`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: pollinationsUrl }),
+        body: JSON.stringify({ query }),
       })
 
-      if (!response.ok) {
-        throw new Error('Image generation failed')
-      }
+      if (!response.ok) return null
 
-      // Convert blob to base64 for storing in Supabase
-      const blob = await response.blob()
-      
-      // For now, return the Pollinations URL directly
-      // In production, you might want to upload to Supabase Storage
-      return pollinationsUrl
+      const data = await response.json()
+      return data.url || null
     } catch (error) {
       console.error('Image generation error:', error)
       return null
