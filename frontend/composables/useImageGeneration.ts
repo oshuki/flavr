@@ -27,11 +27,19 @@ export const useImageGeneration = () => {
         ),
       ].join(' ')
 
-      const response = await fetch(`${backendUrl}/api/unsplash-image`, {
+      const doFetch = () => fetch(`${backendUrl}/api/unsplash-image`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query }),
       })
+
+      let response = await doFetch()
+
+      // Retry once if server not ready yet (e.g. mid-deploy)
+      if (response.status === 404 || response.status === 503) {
+        await new Promise(r => setTimeout(r, 2000))
+        response = await doFetch()
+      }
 
       if (!response.ok) return null
 
