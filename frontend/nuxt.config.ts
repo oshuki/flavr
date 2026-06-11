@@ -43,8 +43,7 @@ export default defineNuxtConfig({
     // Public runtime config (exposed to client)
     public: {
       backendUrl: process.env.NUXT_PUBLIC_BACKEND_URL || 'http://localhost:3000',
-      sentryDsn: process.env.NUXT_PUBLIC_SENTRY_DSN || '',
-      supabase: {
+supabase: {
         url: process.env.NUXT_PUBLIC_SUPABASE_URL || '',
         key: process.env.NUXT_PUBLIC_SUPABASE_KEY || '',
       }

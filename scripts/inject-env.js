@@ -15,20 +15,7 @@ function inject() {
     process.exit(1);
   }
 
-  let html = fs.readFileSync(INDEX_PATH, 'utf-8');
-
-  // Replace Sentry DSN placeholder with environment variable
-  const sentryDsn = process.env.SENTRY_DSN_FRONTEND || process.env.VITE_SENTRY_DSN_FRONTEND || '';
-  
-  if (sentryDsn && sentryDsn.startsWith('https://')) {
-    html = html.replace('%SENTRY_DSN_CLIENT%', sentryDsn);
-    console.log('✅ Injected SENTRY_DSN_FRONTEND into index.html');
-  } else {
-    console.log('⚠️  No valid SENTRY_DSN_FRONTEND found, leaving placeholder');
-  }
-
-  // Future: add other environment variable replacements here
-  // e.g., html = html.replace('%API_URL%', process.env.API_URL || '');
+  const html = fs.readFileSync(INDEX_PATH, 'utf-8');
 
   fs.writeFileSync(INDEX_PATH, html, 'utf-8');
   console.log('✅ Build script completed');

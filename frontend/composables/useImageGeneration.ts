@@ -16,7 +16,7 @@ export const useImageGeneration = () => {
   const config = useRuntimeConfig()
   const backendUrl = config.public.backendUrl
   const isGenerating = ref(false)
-  const session = useSupabaseSession()
+  const supabase = useSupabaseClient()
 
   const retryHint = 'Versuche es später erneut oder lade ein eigenes Foto hoch.'
 
@@ -39,8 +39,9 @@ export const useImageGeneration = () => {
     }
   }
 
-  const getAccessToken = (): string | null => {
-    return session.value?.access_token || null
+  const getAccessToken = async (): Promise<string | null> => {
+    const { data } = await supabase.auth.getSession()
+    return data.session?.access_token || null
   }
 
   const buildQuery = (recipeTitle: string, ingredients: string[] = []): string => {
@@ -64,7 +65,7 @@ export const useImageGeneration = () => {
     isGenerating.value = true
 
     try {
-      const token = getAccessToken()
+      const token = await getAccessToken()
       if (!token) {
         return { suggestions: [], fallbackUsed: false, error: 'Du musst eingeloggt sein, um Bildvorschläge zu erhalten.' }
       }
@@ -107,7 +108,7 @@ export const useImageGeneration = () => {
     if (process.server) return { error: 'Nicht verfügbar.' }
 
     try {
-      const token = getAccessToken()
+      const token = await getAccessToken()
       if (!token) {
         return { error: 'Du musst eingeloggt sein, um ein Bild zu übernehmen.' }
       }

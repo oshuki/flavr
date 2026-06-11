@@ -3,8 +3,6 @@ import type { Context, Next } from 'hono'
 import { cors } from 'hono/cors'
 import express from 'express'
 import 'dotenv/config'
-import * as Sentry from '@sentry/node'
-import { RewriteFrames } from '@sentry/integrations'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { randomUUID } from 'node:crypto'
 
@@ -18,50 +16,6 @@ interface ClaudeRequest {
 
 // App & Middleware
 export const app = new Hono<{ Variables: { userId: string } }>()
-
-// Initialize Sentry (backend)
-try {
-  Sentry.init({
-    dsn: process.env.SENTRY_DSN_BACKEND || undefined,
-    environment: process.env.NODE_ENV || 'development',
-    tracesSampleRate: process.env.NODE_ENV === 'production' ? 0.2 : 1.0,
-    
-    // Release Tracking
-    release: process.env.RAILWAY_GIT_COMMIT_SHA || 'development',
-    
-    integrations: [
-      new RewriteFrames({ root: globalThis?.process?.cwd() || '' }) as any,
-    ],
-    
-    // Ignore bestimmte Error-Typen
-    ignoreErrors: [
-      'ECONNRESET',
-      'ETIMEDOUT',
-      'ENOTFOUND',
-    ],
-    
-    // Performance Monitoring
-    beforeSend(event, hint) {
-      // Log critical errors
-      if (event.level === 'fatal' || event.level === 'error') {
-        console.error('Sentry Error:', hint?.originalException || event.message)
-      }
-      
-      // Filter aus Informationen, die nicht gesendet werden sollen
-      if (event.request?.data) {
-        const requestData = event.request.data as Record<string, unknown>
-        // Entferne potentiell sensitive Daten
-        delete requestData.password
-        delete requestData.token
-      }
-      
-      return event
-    },
-  })
-  console.log('✓ Sentry initialized (backend)')
-} catch (e) {
-  console.warn('⚠️  Sentry init failed:', e)
-}
 
 // CORS für Frontend (localhost:5173 von Vite, sowie Production)
 app.use('*', cors({
@@ -146,7 +100,6 @@ async function requireAuth(c: Context<{ Variables: { userId: string } }>, next: 
     await next()
   } catch (err) {
     console.error('Auth verification error:', err)
-    try { Sentry.captureException(err) } catch (e) {}
     return c.json({ error: 'Nicht authentifiziert' }, 401 as any)
   }
 }
@@ -346,7 +299,6 @@ app.post('/api/claude', async (c) => {
     return c.json(data)
   } catch (error) {
     console.error('Claude proxy error:', error)
-    try { Sentry.captureException(error) } catch (e) {}
     return c.json({ error: 'Internal server error', details: error instanceof Error ? error.message : String(error) }, 500 as any)
   }
 })
@@ -469,7 +421,6 @@ app.post('/api/recipe-image/suggest', requireAuth, async (c) => {
         })
       } catch (fetchErr) {
         console.error('Unsplash fetch error:', fetchErr)
-        try { Sentry.captureException(fetchErr) } catch (e) {}
         return c.json({ error: 'Bildquelle nicht erreichbar' }, 502 as any)
       }
 
@@ -513,7 +464,6 @@ app.post('/api/recipe-image/suggest', requireAuth, async (c) => {
     return c.json({ suggestions, fallbackUsed: false })
   } catch (error) {
     console.error('Recipe image suggest error:', error)
-    try { Sentry.captureException(error) } catch (e) {}
     return c.json({ error: 'Bildersuche fehlgeschlagen' }, 500 as any)
   }
 })
@@ -555,7 +505,6 @@ app.post('/api/recipe-image/persist', requireAuth, async (c) => {
     } catch (fetchErr) {
       clearTimeout(timeout)
       console.error('Recipe image persist fetch error:', fetchErr)
-      try { Sentry.captureException(fetchErr) } catch (e) {}
       return c.json({ error: 'Bild konnte nicht geladen werden' }, 502 as any)
     }
     clearTimeout(timeout)
@@ -579,7 +528,6 @@ app.post('/api/recipe-image/persist', requireAuth, async (c) => {
 
     if (uploadError) {
       console.error('Recipe image persist upload error:', uploadError)
-      try { Sentry.captureException(uploadError) } catch (e) {}
       return c.json({ error: 'Speichern fehlgeschlagen' }, 500 as any)
     }
 
@@ -590,7 +538,6 @@ app.post('/api/recipe-image/persist', requireAuth, async (c) => {
     return c.json({ imageUrl: publicUrlData.publicUrl, source: 'pollinations' })
   } catch (error) {
     console.error('Recipe image persist error:', error)
-    try { Sentry.captureException(error) } catch (e) {}
     return c.json({ error: 'Speichern fehlgeschlagen' }, 500 as any)
   }
 })
@@ -639,7 +586,6 @@ app.post('/api/fetch-url', async (c) => {
     }
   } catch (error) {
     console.error('URL fetch proxy error:', error)
-    try { Sentry.captureException(error) } catch (e) {}
     return c.json({ error: 'Fetch fehlgeschlagen', details: error instanceof Error ? error.message : String(error) }, 500 as any)
   }
 })
@@ -685,7 +631,6 @@ app.post('/api/bring/login', async (c) => {
     return c.json(data)
   } catch (error) {
     console.error('Bring login error:', error)
-    try { Sentry.captureException(error) } catch (e) {}
     return c.json({ error: 'Login fehlgeschlagen', details: error instanceof Error ? error.message : String(error) }, 500 as any)
   }
 })
@@ -723,7 +668,6 @@ app.post('/api/bring/lists', async (c) => {
     return c.json(data)
   } catch (error) {
     console.error('Bring lists error:', error)
-    try { Sentry.captureException(error) } catch (e) {}
     return c.json({ error: 'Fehler beim Laden der Listen', details: error instanceof Error ? error.message : String(error) }, 500 as any)
   }
 })
@@ -766,7 +710,6 @@ app.post('/api/bring/items', async (c) => {
     })
   } catch (error) {
     console.error('Bring add items error:', error)
-    try { Sentry.captureException(error) } catch (e) {}
     return c.json({ error: 'Fehler beim Hinzufügen', details: error instanceof Error ? error.message : String(error) }, 500 as any)
   }
 })
@@ -776,26 +719,6 @@ app.post('/api/bring/items', async (c) => {
 // ══════════════════════════════════════════════════════════════
 app.onError((err, c) => {
   console.error('Unhandled error:', err)
-
-  const headersObj: Record<string, string> = {}
-  c.req.raw.headers.forEach((value, key) => {
-    headersObj[key] = value
-  })
-  
-  // Sende zu Sentry
-  try {
-    Sentry.captureException(err, {
-      contexts: {
-        request: {
-          method: c.req.method,
-          url: c.req.url,
-          headers: headersObj,
-        },
-      },
-    })
-  } catch (e) {
-    console.error('Failed to send error to Sentry:', e)
-  }
 
   // Generische Error Response
   const status = (err as any).status || 500
@@ -856,7 +779,6 @@ expressApp.use(async (req: express.Request, res: express.Response, _next: expres
     res.end(Buffer.from(buffer))
   } catch (err) {
     console.error('Handler error:', err)
-    try { Sentry.captureException(err) } catch (e) {}
     res.status(500).json({ error: 'Internal server error', details: String(err) })
   }
 })
