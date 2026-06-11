@@ -39,10 +39,9 @@ export const useImageGeneration = () => {
     }
   }
 
-  const getAccessToken = async (): Promise<string | null> => {
-    const supabase = useSupabaseClient()
-    const { data } = await supabase.auth.getSession()
-    return data.session?.access_token || null
+  const getAccessToken = (): string | null => {
+    const session = useSupabaseSession()
+    return session.value?.access_token || null
   }
 
   const buildQuery = (recipeTitle: string, ingredients: string[] = []): string => {
@@ -66,7 +65,7 @@ export const useImageGeneration = () => {
     isGenerating.value = true
 
     try {
-      const token = await getAccessToken()
+      const token = getAccessToken()
       if (!token) {
         return { suggestions: [], fallbackUsed: false, error: 'Du musst eingeloggt sein, um Bildvorschläge zu erhalten.' }
       }
@@ -109,7 +108,7 @@ export const useImageGeneration = () => {
     if (process.server) return { error: 'Nicht verfügbar.' }
 
     try {
-      const token = await getAccessToken()
+      const token = getAccessToken()
       if (!token) {
         return { error: 'Du musst eingeloggt sein, um ein Bild zu übernehmen.' }
       }
