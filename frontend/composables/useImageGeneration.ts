@@ -16,10 +16,10 @@ export const useImageGeneration = () => {
   const config = useRuntimeConfig()
   const backendUrl = config.public.backendUrl
   const isGenerating = ref(false)
+  const session = useSupabaseSession()
 
   const retryHint = 'Versuche es später erneut oder lade ein eigenes Foto hoch.'
 
-  // Map backend error responses to readable German messages
   const mapErrorMessage = (status: number, body: any): string => {
     switch (status) {
       case 400:
@@ -40,7 +40,6 @@ export const useImageGeneration = () => {
   }
 
   const getAccessToken = (): string | null => {
-    const session = useSupabaseSession()
     return session.value?.access_token || null
   }
 
