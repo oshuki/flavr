@@ -16,7 +16,7 @@ interface ClaudeRequest {
 }
 
 // App & Middleware
-const app = new Hono<{ Variables: { userId: string } }>()
+export const app = new Hono<{ Variables: { userId: string } }>()
 
 // Initialize Sentry (backend)
 try {
@@ -340,98 +340,246 @@ app.post('/api/claude', async (c) => {
 })
 
 // ══════════════════════════════════════════════════════════════
-// IMAGE PROXY - Pollinations (für Localhost CORS-Probleme)
+// RECIPE IMAGE SUGGEST - Pollinations (default) / Unsplash (prefer)
 // ══════════════════════════════════════════════════════════════
-app.post('/api/image-proxy', async (c) => {
+interface UnsplashCacheEntry {
+  results: ImageSuggestion[]
+  expires: number
+}
+
+interface ImageSuggestion {
+  source: 'pollinations' | 'unsplash'
+  url: string
+  thumbUrl: string
+  credit: string | null
+  creditUrl: string | null
+}
+
+const unsplashCache = new Map<string, UnsplashCacheEntry>()
+const UNSPLASH_CACHE_TTL = 60 * 60 * 1000 // 1 Stunde
+
+function cleanupUnsplashCache() {
+  if (unsplashCache.size > 1000) {
+    const now = Date.now()
+    for (const [key, value] of unsplashCache.entries()) {
+      if (value.expires < now) {
+        unsplashCache.delete(key)
+      }
+    }
+  }
+}
+
+function buildPollinationsPrompt(query: string): string {
+  return `professional food photography, ${query}, appetizing, natural lighting, on a beautiful plate, restaurant quality`
+}
+
+// Deterministischer Seed aus query + Index
+function seedFromQuery(query: string, index: number): number {
+  let hash = 0
+  const input = `${query}::${index}`
+  for (let i = 0; i < input.length; i++) {
+    hash = (hash * 31 + input.charCodeAt(i)) >>> 0
+  }
+  return hash
+}
+
+function buildPollinationsSuggestions(query: string, count: number): ImageSuggestion[] {
+  const prompt = buildPollinationsPrompt(query)
+  const encodedPrompt = encodeURIComponent(prompt)
+  const suggestions: ImageSuggestion[] = []
+
+  for (let i = 0; i < count; i++) {
+    const seed = seedFromQuery(query, i)
+    const url = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=800&height=600&nologo=true&seed=${seed}`
+    suggestions.push({
+      source: 'pollinations',
+      url,
+      thumbUrl: url,
+      credit: null,
+      creditUrl: null,
+    })
+  }
+
+  return suggestions
+}
+
+app.post('/api/recipe-image/suggest', requireAuth, async (c) => {
   try {
-    const { url } = await c.req.json()
+    // Rate Limiting Check
+    const clientIP = c.req.header('x-forwarded-for')?.split(',')[0].trim() ||
+                     c.req.header('x-real-ip') ||
+                     'unknown'
 
-    if (!url || typeof url !== 'string') {
-      return c.json({ error: 'URL required' }, 400 as any)
+    const rateLimit = checkRateLimit(clientIP)
+    c.header('X-RateLimit-Limit', RATE_LIMIT_MAX.toString())
+    c.header('X-RateLimit-Remaining', rateLimit.remaining.toString())
+    c.header('X-RateLimit-Reset', new Date(rateLimit.resetTime).toISOString())
+
+    if (!rateLimit.allowed) {
+      const retryAfter = Math.ceil((rateLimit.resetTime - Date.now()) / 1000)
+      c.header('Retry-After', retryAfter.toString())
+      return c.json({ error: 'Rate limit exceeded', retryAfter }, 429 as any)
     }
 
-    // Security: Nur Pollinations & Google Fonts erlauben
-    if (!url.includes('image.pollinations.ai') && !url.includes('fonts.googleapis')) {
-      return c.json({ error: 'URL not allowed' }, 403 as any)
+    const body = await c.req.json().catch(() => ({}))
+    const { query, count: rawCount, prefer } = body as { query?: unknown; count?: unknown; prefer?: unknown }
+
+    if (typeof query !== 'string' || query.trim().length === 0 || query.length > 200) {
+      return c.json({ error: 'Query erforderlich' }, 400 as any)
     }
 
-    const response = await fetch(url, {
-      headers: { 'User-Agent': 'Flavr/1.0' },
-    })
-
-    if (!response.ok) {
-      return c.json({ error: `HTTP ${response.status}` }, response.status as any)
+    let count = 3
+    if (typeof rawCount === 'number' && Number.isFinite(rawCount)) {
+      count = Math.min(6, Math.max(1, Math.floor(rawCount)))
     }
 
-    const blob = await response.arrayBuffer()
-    const contentType = response.headers.get('content-type') || 'application/octet-stream'
+    if (prefer === 'unsplash') {
+      const accessKey = process.env.UNSPLASH_ACCESS_KEY
+      if (!accessKey) {
+        return c.json({ error: 'Bildersuche nicht konfiguriert' }, 503 as any)
+      }
 
-    return new Response(blob, {
-      headers: {
-        'Content-Type': contentType,
-        'Cache-Control': 'public, max-age=31536000', // 1 Jahr cachen
-        'Access-Control-Allow-Origin': '*',
-      },
-    })
+      const cacheKey = `${query.trim().toLowerCase()}::${count}`
+      cleanupUnsplashCache()
+
+      const cached = unsplashCache.get(cacheKey)
+      if (cached && cached.expires > Date.now()) {
+        c.header('X-Cache', 'HIT')
+        return c.json({ suggestions: cached.results, fallbackUsed: true })
+      }
+
+      const url = `https://api.unsplash.com/search/photos?query=${encodeURIComponent(query)}&per_page=${count}&orientation=landscape&content_filter=high`
+
+      let response: Response
+      try {
+        response = await fetch(url, {
+          headers: { Authorization: `Client-ID ${accessKey}` },
+        })
+      } catch (fetchErr) {
+        console.error('Unsplash fetch error:', fetchErr)
+        try { Sentry.captureException(fetchErr) } catch (e) {}
+        return c.json({ error: 'Bildquelle nicht erreichbar' }, 502 as any)
+      }
+
+      if (!response.ok) {
+        return c.json({ error: 'Bildquelle nicht erreichbar' }, 502 as any)
+      }
+
+      const data: any = await response.json()
+      const results: any[] = data.results || []
+
+      if (results.length === 0) {
+        return c.json({ error: 'Kein Bild gefunden' }, 404 as any)
+      }
+
+      const suggestions: ImageSuggestion[] = results.map((photo: any) => ({
+        source: 'unsplash' as const,
+        url: photo.urls.regular,
+        thumbUrl: photo.urls.thumb,
+        credit: photo.user?.name ?? null,
+        creditUrl: photo.user?.links?.html
+          ? `${photo.user.links.html}?utm_source=flavr&utm_medium=referral`
+          : null,
+      }))
+
+      // Download-Trigger gemäß Unsplash-Guideline
+      for (const photo of results) {
+        if (photo.links?.download_location) {
+          fetch(photo.links.download_location, {
+            headers: { Authorization: `Client-ID ${accessKey}` },
+          }).catch(() => {})
+        }
+      }
+
+      unsplashCache.set(cacheKey, { results: suggestions, expires: Date.now() + UNSPLASH_CACHE_TTL })
+
+      c.header('X-Cache', 'MISS')
+      return c.json({ suggestions, fallbackUsed: true })
+    }
+
+    const suggestions = buildPollinationsSuggestions(query, count)
+    return c.json({ suggestions, fallbackUsed: false })
   } catch (error) {
-    console.error('Image proxy error:', error)
+    console.error('Recipe image suggest error:', error)
     try { Sentry.captureException(error) } catch (e) {}
-    return c.json({ error: 'Proxy failed', details: error instanceof Error ? error.message : String(error) }, 500 as any)
+    return c.json({ error: 'Bildersuche fehlgeschlagen' }, 500 as any)
   }
 })
 
 // ══════════════════════════════════════════════════════════════
-// UNSPLASH IMAGE SEARCH - Rezeptbilder
+// RECIPE IMAGE PERSIST - Pollinations-Bild in Supabase Storage sichern
 // ══════════════════════════════════════════════════════════════
-app.post('/api/unsplash-image', async (c) => {
+app.post('/api/recipe-image/persist', requireAuth, async (c) => {
   try {
-    const { query } = await c.req.json()
-    if (!query || typeof query !== 'string') {
-      return c.json({ error: 'Query erforderlich' }, 400 as any)
+    const body = await c.req.json().catch(() => ({}))
+    const { url } = body as { url?: unknown }
+
+    if (typeof url !== 'string' || url.trim().length === 0) {
+      return c.json({ error: 'URL erforderlich' }, 400 as any)
     }
 
-    const accessKey = process.env.UNSPLASH_ACCESS_KEY
-    if (!accessKey) {
-      return c.json({ error: 'Unsplash nicht konfiguriert' }, 503 as any)
+    let parsedUrl: URL
+    try {
+      parsedUrl = new URL(url)
+    } catch {
+      return c.json({ error: 'URL nicht erlaubt' }, 400 as any)
     }
 
-    const url = `https://api.unsplash.com/search/photos?query=${encodeURIComponent(query)}&per_page=1&orientation=landscape&content_filter=high`
-    const response = await fetch(url, {
-      headers: { Authorization: `Client-ID ${accessKey}` },
-    })
+    if (parsedUrl.hostname !== 'image.pollinations.ai') {
+      return c.json({ error: 'URL nicht erlaubt' }, 400 as any)
+    }
+
+    const serviceClient = getSupabaseServiceClient()
+    if (!serviceClient) {
+      return c.json({ error: 'Bildspeicher nicht konfiguriert' }, 503 as any)
+    }
+
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 15000)
+
+    let response: Response
+    try {
+      response = await fetch(parsedUrl.toString(), { signal: controller.signal })
+    } catch (fetchErr) {
+      clearTimeout(timeout)
+      console.error('Recipe image persist fetch error:', fetchErr)
+      try { Sentry.captureException(fetchErr) } catch (e) {}
+      return c.json({ error: 'Bild konnte nicht geladen werden' }, 502 as any)
+    }
+    clearTimeout(timeout)
 
     if (!response.ok) {
-      return c.json({ error: `Unsplash HTTP ${response.status}` }, 502 as any)
+      return c.json({ error: 'Bild konnte nicht geladen werden' }, 502 as any)
     }
 
-    const data: any = await response.json()
-    const photo = data.results?.[0]
-    if (!photo) {
-      return c.json({ error: 'Kein Bild gefunden' }, 404 as any)
+    const contentType = response.headers.get('content-type') || 'image/jpeg'
+    const arrayBuffer = await response.arrayBuffer()
+
+    const userId = c.get('userId')
+    const path = `${userId}/ai/${crypto.randomUUID()}.jpg`
+
+    const { error: uploadError } = await serviceClient.storage
+      .from('recipe-images')
+      .upload(path, Buffer.from(arrayBuffer), {
+        contentType,
+        upsert: true,
+      })
+
+    if (uploadError) {
+      console.error('Recipe image persist upload error:', uploadError)
+      try { Sentry.captureException(uploadError) } catch (e) {}
+      return c.json({ error: 'Speichern fehlgeschlagen' }, 500 as any)
     }
 
-    // Trigger download as required by Unsplash guidelines
-    fetch(photo.links.download_location, {
-      headers: { Authorization: `Client-ID ${accessKey}` },
-    }).catch(() => {})
+    const { data: publicUrlData } = serviceClient.storage
+      .from('recipe-images')
+      .getPublicUrl(path)
 
-    return new Response(JSON.stringify({
-      url: photo.urls.regular,
-      thumb: photo.urls.thumb,
-      credit: photo.user.name,
-      creditUrl: `${photo.user.links.html}?utm_source=flavr&utm_medium=referral`,
-      unsplashUrl: `https://unsplash.com/?utm_source=flavr&utm_medium=referral`,
-    }), {
-      headers: {
-        'Content-Type': 'application/json',
-        'Cache-Control': 'no-store',
-        'Access-Control-Allow-Origin': '*',
-      },
-    })
+    return c.json({ imageUrl: publicUrlData.publicUrl, source: 'pollinations' })
   } catch (error) {
-    console.error('Unsplash error:', error)
+    console.error('Recipe image persist error:', error)
     try { Sentry.captureException(error) } catch (e) {}
-    return c.json({ error: 'Bildersuche fehlgeschlagen' }, 500 as any)
+    return c.json({ error: 'Speichern fehlgeschlagen' }, 500 as any)
   }
 })
 

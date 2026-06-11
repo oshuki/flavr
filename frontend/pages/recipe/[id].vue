@@ -37,6 +37,12 @@
 
       <!-- Pull-up content card -->
       <div class="detail-card">
+        <!-- Image attribution -->
+        <p v-if="recipe.imageSource === 'unsplash' && recipe.imageCredit" class="image-attribution">
+          Foto von <a :href="recipe.imageCreditUrl" target="_blank" rel="noopener">{{ recipe.imageCredit }}</a>
+          auf <a href="https://unsplash.com/?utm_source=flavr&utm_medium=referral" target="_blank" rel="noopener">Unsplash</a>
+        </p>
+
         <!-- Title & meta -->
         <h1 class="detail-title">{{ recipe.title }}</h1>
 
@@ -354,6 +360,15 @@ onUnmounted(() => window.removeEventListener('keydown', handleKeydown))
   position: relative; z-index: 2;
   padding: 22px 20px 40px;
   min-height: 60vh;
+}
+
+.image-attribution {
+  font-size: 11px; color: var(--muted-light);
+  margin: -10px 0 10px;
+  text-align: right;
+}
+.image-attribution a {
+  color: var(--muted-light); text-decoration: underline;
 }
 
 .detail-title {

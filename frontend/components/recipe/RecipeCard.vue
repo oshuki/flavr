@@ -7,6 +7,12 @@
         <span class="placeholder-emoji">{{ emoji[recipe.category] || '🍽️' }}</span>
       </div>
 
+      <!-- Unsplash attribution -->
+      <div v-if="recipe.imageSource === 'unsplash' && recipe.imageCredit" class="image-credit">
+        Foto von <a :href="recipe.imageCreditUrl" target="_blank" rel="noopener" @click.stop>{{ recipe.imageCredit }}</a>
+        auf <a href="https://unsplash.com/?utm_source=flavr&utm_medium=referral" target="_blank" rel="noopener" @click.stop>Unsplash</a>
+      </div>
+
       <!-- Favourite button -->
       <button
         class="fav-btn"
@@ -105,6 +111,21 @@ const imageError = ref(false)
 }
 .fav-btn:hover { transform: scale(1.1); }
 .fav-btn.active { color: #E53E3E; }
+
+/* Image credit overlay */
+.image-credit {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  background: linear-gradient(to top, rgba(0,0,0,0.6), transparent);
+  color: rgba(255,255,255,0.9);
+  font-size: 10px;
+  padding: 14px 8px 5px;
+  line-height: 1.3;
+}
+.image-credit a {
+  color: #fff;
+  text-decoration: underline;
+}
 
 /* Body */
 .recipe-body { padding: 12px 14px 14px; }
