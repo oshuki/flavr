@@ -6,6 +6,7 @@ import 'dotenv/config'
 import * as Sentry from '@sentry/node'
 import { RewriteFrames } from '@sentry/integrations'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
+import { randomUUID } from 'node:crypto'
 
 // Types
 interface ClaudeRequest {
@@ -556,7 +557,7 @@ app.post('/api/recipe-image/persist', requireAuth, async (c) => {
     const arrayBuffer = await response.arrayBuffer()
 
     const userId = c.get('userId')
-    const path = `${userId}/ai/${crypto.randomUUID()}.jpg`
+    const path = `${userId}/ai/${randomUUID()}.jpg`
 
     const { error: uploadError } = await serviceClient.storage
       .from('recipe-images')

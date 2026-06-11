@@ -47,8 +47,8 @@ Base URL: https://flavr-3m5v.onrender.com
 
 - GET /health
 - POST /api/claude
-- POST /api/image-proxy
-- POST /api/unsplash-image (searches Unsplash for recipe photos, requires UNSPLASH_ACCESS_KEY)
+- POST /api/recipe-image/suggest (auth required: Supabase JWT via Authorization Bearer header; returns >=3 image suggestions — Pollinations.ai URLs by default, Unsplash search results with credit when `prefer: "unsplash"` is requested; Unsplash responses cached in-memory for 1h, X-Cache header)
+- POST /api/recipe-image/persist (auth required; copies a selected Pollinations image into the `recipe-images` storage bucket via service-role client, returns permanent public URL; only accepts hostname image.pollinations.ai)
 - POST /api/fetch-url (fetches external HTML server-side, CORS workaround for recipe URL import)
 - POST /api/bring/login
 - POST /api/bring/lists
@@ -62,6 +62,7 @@ Frontend deployment:
 - Root directory: frontend
 - Build command: npm run generate
 - Output directory: .output/public
+- Node version: pinned via frontend/.node-version (22) — Nuxt 4.4+ requires Node >= 20.19; without the pin Cloudflare defaults to Node 18 and the build fails (alternatively set NODE_VERSION env var in the Pages project)
 
 Backend deployment:
 - Trigger: Render auto deploy from main and optional GitHub deploy hook
@@ -90,7 +91,10 @@ Render:
 - SENTRY_DSN_BACKEND=<optional>
 - USE_MOCK_AI=false
 - RENDER_EXTERNAL_URL=https://flavr-3m5v.onrender.com (used for keep-alive self-ping)
-- UNSPLASH_ACCESS_KEY=<secret> (from unsplash.com/developers, free tier)
+- UNSPLASH_ACCESS_KEY=<secret> (from unsplash.com/developers, free tier; used for the Unsplash fallback of /api/recipe-image/suggest)
+- SUPABASE_URL=<supabase-url> (used by backend Supabase clients)
+- SUPABASE_ANON_KEY=<supabase-anon-key> (JWT verification in requireAuth middleware)
+- SUPABASE_SERVICE_ROLE_KEY=<secret> (storage uploads to recipe-images bucket; high-privilege — never expose to frontend, rotate immediately on leak)
 
 GitHub Actions Secrets:
 - NUXT_PUBLIC_BACKEND_URL=https://flavr-3m5v.onrender.com
@@ -102,9 +106,12 @@ GitHub Actions Secrets:
 ## 6. Supabase Data Model
 
 Tables:
-- recipes — user recipes (id, user_id, title, category, duration, servings, ingredients[], steps[], tags[], notes, image_url, is_favorite, source_app, created_at)
+- recipes — user recipes (id, user_id, title, category, duration, servings, ingredients[], steps[], tags[], notes, image_url, image_source, image_credit, image_credit_url, is_favorite, source_app, created_at). image_source: 'pollinations' | 'unsplash' | 'upload'; image_credit/image_credit_url store the mandatory Unsplash photographer attribution (migration: supabase-recipe-image-fields.sql).
 - meal_plans — weekly meal planner (id, user_id, week_start date, meals jsonb, created_at, updated_at). UNIQUE(user_id, week_start). RLS: users manage own rows.
 - auth.users — managed by Supabase Auth
+
+Storage:
+- recipe-images bucket (public-read) — manual uploads from the frontend (`${userId}/<timestamp>.<ext>`) and AI images persisted by the backend service-role client (`${userId}/ai/<uuid>.jpg`)
 
 meal_plans.meals JSON structure:
 ```json
