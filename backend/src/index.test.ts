@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect } from 'vitest'
 
 describe('Health Endpoint', () => {
   it('should return status ok', () => {
@@ -15,8 +15,6 @@ describe('Health Endpoint', () => {
 
 describe('Environment Variables', () => {
   it('should have required environment variables in production', () => {
-    const requiredVars = ['CLAUDE_API_KEY']
-    
     // In tests, we just check structure
     expect(process.env).toBeDefined()
   })

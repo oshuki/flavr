@@ -593,7 +593,7 @@ expressApp.use(express.json())
 expressApp.use(express.raw({ type: 'application/octet-stream' }))
 
 // Request Handler - Convertiere Express zu Hono Requests
-expressApp.use(async (req: express.Request, res: express.Response, next: express.NextFunction) => {
+expressApp.use(async (req: express.Request, res: express.Response, _next: express.NextFunction) => {
   try {
     const url = `http://localhost:${port}${req.originalUrl}`
     
