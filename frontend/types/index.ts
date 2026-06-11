@@ -9,6 +9,9 @@ export interface Recipe {
   tags: string[]
   notes?: string
   imageUrl?: string
+  imageSource?: 'pollinations' | 'unsplash' | 'upload'
+  imageCredit?: string
+  imageCreditUrl?: string
   isFavorite: boolean
   sourceApp?: string
   createdAt: number
@@ -26,6 +29,9 @@ export interface RecipeRow {
   tags: string[]
   notes?: string
   image_url?: string
+  image_source?: 'pollinations' | 'unsplash' | 'upload'
+  image_credit?: string
+  image_credit_url?: string
   is_favorite: boolean
   source_app?: string
   created_at: string

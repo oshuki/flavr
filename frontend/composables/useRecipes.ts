@@ -19,6 +19,9 @@ export const useRecipes = () => {
       tags: row.tags || [],
       notes: row.notes,
       imageUrl: row.image_url,
+      imageSource: row.image_source,
+      imageCredit: row.image_credit,
+      imageCreditUrl: row.image_credit_url,
       isFavorite: row.is_favorite,
       sourceApp: row.source_app,
       createdAt: new Date(row.created_at).getTime()
@@ -45,6 +48,9 @@ export const useRecipes = () => {
       tags: recipe.tags || [],
       notes: recipe.notes || null,
       image_url: recipe.imageUrl || null,
+      image_source: recipe.imageSource || null,
+      image_credit: recipe.imageCredit || null,
+      image_credit_url: recipe.imageCreditUrl || null,
       is_favorite: recipe.isFavorite || false,
       source_app: recipe.sourceApp || null,
       created_at: recipe.createdAt ? new Date(recipe.createdAt).toISOString() : new Date().toISOString()

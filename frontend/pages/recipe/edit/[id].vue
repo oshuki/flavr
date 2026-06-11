@@ -161,11 +161,11 @@
           <!-- Preview -->
           <div v-if="formData.imageUrl" class="image-preview">
             <img :src="formData.imageUrl" alt="Vorschau">
-            <button type="button" class="btn-remove-img" @click="formData.imageUrl = ''; lastCredit.value = null">✕</button>
+            <button type="button" class="btn-remove-img" @click="clearImage" aria-label="Bild entfernen">✕</button>
           </div>
-          <p v-if="lastCredit" class="unsplash-credit">
-            Foto von <a :href="lastCredit.creditUrl" target="_blank" rel="noopener">{{ lastCredit.name }}</a>
-            auf <a :href="lastCredit.unsplashUrl" target="_blank" rel="noopener">Unsplash</a>
+          <p v-if="formData.imageSource === 'unsplash' && formData.imageCredit" class="unsplash-credit">
+            Foto von <a :href="formData.imageCreditUrl" target="_blank" rel="noopener">{{ formData.imageCredit }}</a>
+            auf <a href="https://unsplash.com/?utm_source=flavr&utm_medium=referral" target="_blank" rel="noopener">Unsplash</a>
           </p>
 
           <div v-if="!formData.imageUrl" class="image-actions">
@@ -181,15 +181,56 @@
               >
             </label>
 
-            <!-- KI-Bild -->
+            <!-- Bildvorschlag -->
             <button
               type="button"
               class="btn-ai"
-              @click="handleGenerateImage"
+              @click="handleSuggestImage"
               :disabled="!formData.title || isGeneratingImage"
             >
-              {{ isGeneratingImage ? '🎨 Generiere…' : '✨ KI-Bild' }}
+              {{ isGeneratingImage ? '🎨 Lädt Vorschläge…' : '✨ Bild vorschlagen' }}
             </button>
+          </div>
+
+          <!-- Fehler / Hinweise -->
+          <p v-if="suggestionError" class="image-hint image-hint--error">
+            {{ suggestionError }}
+          </p>
+
+          <!-- Vorschlags-Galerie -->
+          <div v-if="showGallery" class="suggestion-gallery">
+            <div class="gallery-header">
+              <h3>Bildvorschläge</h3>
+              <button type="button" class="btn-close-gallery" @click="closeGallery" aria-label="Galerie schließen">✕</button>
+            </div>
+
+            <div v-if="suggestions.length" class="gallery-grid">
+              <button
+                v-for="(s, i) in suggestions"
+                :key="i"
+                type="button"
+                class="gallery-tile"
+                :disabled="persisting"
+                @click="selectSuggestion(s)"
+              >
+                <div v-if="!loadedTiles[i] && !erroredTiles[i]" class="tile-spinner">
+                  <div class="spinner small"></div>
+                </div>
+                <img
+                  v-if="!erroredTiles[i]"
+                  :src="s.thumbUrl || s.url"
+                  :alt="`Bildvorschlag ${i + 1}`"
+                  class="tile-img"
+                  :class="{ 'tile-img--loading': !loadedTiles[i] }"
+                  @load="onTileLoad(i)"
+                  @error="onTileError(i)"
+                  loading="lazy"
+                >
+                <span v-if="s.source === 'unsplash'" class="tile-badge">Unsplash</span>
+              </button>
+            </div>
+
+            <p v-if="persisting" class="image-hint">Bild wird übernommen…</p>
           </div>
         </div>
 
@@ -209,14 +250,24 @@
 
 <script setup lang="ts">
 import type { Recipe } from '~/types'
+import type { ImageSuggestion } from '~/composables/useImageGeneration'
 
 const route = useRoute()
 const { recipes, saveRecipe } = useRecipes()
 const { categories, emoji, categorizeRecipe } = useCategories()
-const { generateRecipeImage, isGenerating: isGeneratingImage, lastCredit } = useImageGeneration()
+const { fetchSuggestions, persistPollinations, isGenerating: isGeneratingImage } = useImageGeneration()
 const supabase = useSupabaseClient()
 const user = useSupabaseUser()
 const uploading = ref(false)
+
+// Image suggestion gallery state
+const showGallery = ref(false)
+const suggestions = ref<ImageSuggestion[]>([])
+const suggestionError = ref<string | null>(null)
+const persisting = ref(false)
+const loadedTiles = ref<Record<number, boolean>>({})
+const erroredTiles = ref<Record<number, boolean>>({})
+let unsplashFallbackTried = false
 
 const handleImageUpload = async (e: Event) => {
   const file = (e.target as HTMLInputElement).files?.[0]
@@ -229,11 +280,21 @@ const handleImageUpload = async (e: Event) => {
     if (error) throw error
     const { data } = supabase.storage.from('recipe-images').getPublicUrl(path)
     formData.value.imageUrl = data.publicUrl
+    formData.value.imageSource = 'upload'
+    formData.value.imageCredit = undefined
+    formData.value.imageCreditUrl = undefined
   } catch (e: any) {
     alert('Upload fehlgeschlagen: ' + e.message)
   } finally {
     uploading.value = false
   }
+}
+
+const clearImage = () => {
+  formData.value.imageUrl = ''
+  formData.value.imageSource = undefined
+  formData.value.imageCredit = undefined
+  formData.value.imageCreditUrl = undefined
 }
 
 // Check if recipe exists to determine edit mode
@@ -282,18 +343,93 @@ const removeStep = (index: number) => {
   formData.value.steps?.splice(index, 1)
 }
 
-const handleGenerateImage = async () => {
+const resetTileState = () => {
+  loadedTiles.value = {}
+  erroredTiles.value = {}
+}
+
+const loadSuggestions = async (prefer?: 'unsplash') => {
   if (!formData.value.title) return
-  
-  const imageUrl = await generateRecipeImage(
+
+  suggestionError.value = null
+
+  const result = await fetchSuggestions(
     formData.value.title,
-    formData.value.ingredients?.filter(i => i.trim()) || []
+    formData.value.ingredients?.filter(i => i.trim()) || [],
+    { count: 3, ...(prefer ? { prefer } : {}) }
   )
-  
-  if (imageUrl) {
-    formData.value.imageUrl = imageUrl
+
+  if (result.error) {
+    suggestionError.value = result.error
+    suggestions.value = []
+    showGallery.value = false
+    return
+  }
+
+  if (!result.suggestions.length) {
+    suggestionError.value = 'Es wurden keine Bildvorschläge gefunden. Versuche es später erneut oder lade ein eigenes Foto hoch.'
+    suggestions.value = []
+    showGallery.value = false
+    return
+  }
+
+  suggestions.value = result.suggestions
+  resetTileState()
+  showGallery.value = true
+}
+
+const handleSuggestImage = async () => {
+  if (!formData.value.title) return
+  unsplashFallbackTried = false
+  await loadSuggestions()
+}
+
+const onTileLoad = (index: number) => {
+  loadedTiles.value = { ...loadedTiles.value, [index]: true }
+}
+
+const onTileError = async (index: number) => {
+  erroredTiles.value = { ...erroredTiles.value, [index]: true }
+
+  // If a Pollinations image fails to load, fall back to Unsplash suggestions once
+  const failedSuggestion = suggestions.value[index]
+  if (!unsplashFallbackTried && failedSuggestion?.source === 'pollinations') {
+    unsplashFallbackTried = true
+    await loadSuggestions('unsplash')
+  }
+}
+
+const closeGallery = () => {
+  showGallery.value = false
+  suggestions.value = []
+  suggestionError.value = null
+}
+
+const selectSuggestion = async (suggestion: ImageSuggestion) => {
+  if (persisting.value) return
+
+  if (suggestion.source === 'pollinations') {
+    persisting.value = true
+    try {
+      const result = await persistPollinations(suggestion.url)
+      if ('error' in result) {
+        suggestionError.value = result.error
+        return
+      }
+      formData.value.imageUrl = result.imageUrl
+      formData.value.imageSource = 'pollinations'
+      formData.value.imageCredit = undefined
+      formData.value.imageCreditUrl = undefined
+      closeGallery()
+    } finally {
+      persisting.value = false
+    }
   } else {
-    alert('Bildgenerierung fehlgeschlagen. Bitte versuche es erneut.')
+    formData.value.imageUrl = suggestion.url
+    formData.value.imageSource = 'unsplash'
+    formData.value.imageCredit = suggestion.credit || undefined
+    formData.value.imageCreditUrl = suggestion.creditUrl || undefined
+    closeGallery()
   }
 }
 
@@ -334,6 +470,9 @@ const handleSubmit = async () => {
       tags,
       notes: formData.value.notes || undefined,
       imageUrl: formData.value.imageUrl || undefined,
+      imageSource: formData.value.imageUrl ? formData.value.imageSource : undefined,
+      imageCredit: formData.value.imageUrl ? formData.value.imageCredit : undefined,
+      imageCreditUrl: formData.value.imageUrl ? formData.value.imageCreditUrl : undefined,
       isFavorite: formData.value.isFavorite || false,
       createdAt: formData.value.createdAt || Date.now(),
     }
@@ -562,6 +701,121 @@ onUnmounted(() => {
 }
 .unsplash-credit a {
   color: var(--muted); text-decoration: underline;
+}
+
+.image-hint {
+  font-size: 13px; color: var(--muted); margin-top: 10px; line-height: 1.5;
+}
+.image-hint--error {
+  color: #c33;
+}
+
+.suggestion-gallery {
+  margin-top: 16px;
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+}
+
+.gallery-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.gallery-header h3 {
+  font-size: 15px;
+  margin: 0;
+  font-weight: 700;
+}
+
+.btn-close-gallery {
+  background: white;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 13px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.btn-close-gallery:hover {
+  background: #fee; border-color: #c33; color: #c33;
+}
+
+.gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.gallery-tile {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1.5px solid var(--border);
+  background: var(--surface);
+  padding: 0;
+  cursor: pointer;
+  transition: border-color 0.15s, transform 0.15s;
+}
+.gallery-tile:hover:not(:disabled) {
+  border-color: var(--primary);
+  transform: translateY(-2px);
+}
+.gallery-tile:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.tile-img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.tile-img--loading {
+  opacity: 0;
+}
+
+.tile-spinner {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--surface2);
+}
+
+.spinner.small {
+  width: 22px; height: 22px;
+  border: 3px solid var(--border);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.tile-badge {
+  position: absolute;
+  bottom: 4px; right: 4px;
+  background: rgba(0,0,0,0.6);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 6px;
+  letter-spacing: 0.3px;
+}
+
+@media (max-width: 600px) {
+  .gallery-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
 }
 
 .btn-upload {
