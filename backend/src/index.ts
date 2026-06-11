@@ -131,12 +131,14 @@ async function requireAuth(c: Context<{ Variables: { userId: string } }>, next: 
 
   const supabase = getSupabaseAnonClient()
   if (!supabase) {
+    console.error('requireAuth: SUPABASE_URL oder SUPABASE_ANON_KEY nicht gesetzt — alle authentifizierten Requests werden mit 401 abgelehnt')
     return c.json({ error: 'Nicht authentifiziert' }, 401 as any)
   }
 
   try {
     const { data, error } = await supabase.auth.getUser(token)
     if (error || !data?.user) {
+      console.error('requireAuth: Token-Verifikation fehlgeschlagen:', error?.message || 'kein User')
       return c.json({ error: 'Nicht authentifiziert' }, 401 as any)
     }
 
@@ -153,7 +155,16 @@ async function requireAuth(c: Context<{ Variables: { userId: string } }>, next: 
 // HEALTH CHECK
 // ══════════════════════════════════════════════════════════════
 app.get('/health', (c) => {
-  return c.json({ status: 'ok', timestamp: new Date().toISOString() })
+  return c.json({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    config: {
+      supabaseUrl: !!process.env.SUPABASE_URL,
+      supabaseAnonKey: !!process.env.SUPABASE_ANON_KEY,
+      supabaseServiceRoleKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+      unsplashAccessKey: !!process.env.UNSPLASH_ACCESS_KEY,
+    },
+  })
 })
 
 // ══════════════════════════════════════════════════════════════
