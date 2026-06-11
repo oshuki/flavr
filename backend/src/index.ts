@@ -1,9 +1,11 @@
 import { Hono } from 'hono'
+import type { Context, Next } from 'hono'
 import { cors } from 'hono/cors'
 import express from 'express'
 import 'dotenv/config'
 import * as Sentry from '@sentry/node'
 import { RewriteFrames } from '@sentry/integrations'
+import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 
 // Types
 interface ClaudeRequest {
@@ -14,7 +16,7 @@ interface ClaudeRequest {
 }
 
 // App & Middleware
-const app = new Hono()
+const app = new Hono<{ Variables: { userId: string } }>()
 
 // Initialize Sentry (backend)
 try {
@@ -76,6 +78,75 @@ app.use('*', cors({
   allowMethods: ['GET', 'POST', 'OPTIONS'],
   allowHeaders: ['Content-Type', 'Authorization', 'Cache-Control'],
 }))
+
+// ══════════════════════════════════════════════════════════════
+// SUPABASE CLIENTS - lazy, modul-global
+// ══════════════════════════════════════════════════════════════
+let supabaseAnonClient: SupabaseClient | null | undefined
+let supabaseServiceClient: SupabaseClient | null | undefined
+
+function getSupabaseAnonClient(): SupabaseClient | null {
+  if (supabaseAnonClient !== undefined) return supabaseAnonClient
+
+  const url = process.env.SUPABASE_URL
+  const key = process.env.SUPABASE_ANON_KEY
+  if (!url || !key) {
+    supabaseAnonClient = null
+    return supabaseAnonClient
+  }
+
+  supabaseAnonClient = createClient(url, key, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  })
+  return supabaseAnonClient
+}
+
+function getSupabaseServiceClient(): SupabaseClient | null {
+  if (supabaseServiceClient !== undefined) return supabaseServiceClient
+
+  const url = process.env.SUPABASE_URL
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!url || !key) {
+    supabaseServiceClient = null
+    return supabaseServiceClient
+  }
+
+  supabaseServiceClient = createClient(url, key, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  })
+  return supabaseServiceClient
+}
+
+// ══════════════════════════════════════════════════════════════
+// AUTH MIDDLEWARE - verifiziert Supabase JWT
+// ══════════════════════════════════════════════════════════════
+async function requireAuth(c: Context<{ Variables: { userId: string } }>, next: Next) {
+  const authHeader = c.req.header('Authorization') || ''
+  const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : ''
+
+  if (!token) {
+    return c.json({ error: 'Nicht authentifiziert' }, 401 as any)
+  }
+
+  const supabase = getSupabaseAnonClient()
+  if (!supabase) {
+    return c.json({ error: 'Nicht authentifiziert' }, 401 as any)
+  }
+
+  try {
+    const { data, error } = await supabase.auth.getUser(token)
+    if (error || !data?.user) {
+      return c.json({ error: 'Nicht authentifiziert' }, 401 as any)
+    }
+
+    c.set('userId', data.user.id)
+    await next()
+  } catch (err) {
+    console.error('Auth verification error:', err)
+    try { Sentry.captureException(err) } catch (e) {}
+    return c.json({ error: 'Nicht authentifiziert' }, 401 as any)
+  }
+}
 
 // ══════════════════════════════════════════════════════════════
 // HEALTH CHECK
