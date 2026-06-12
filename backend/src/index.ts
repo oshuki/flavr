@@ -80,9 +80,11 @@ async function requireAuth(c: Context<{ Variables: { userId: string } }>, next: 
   const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : ''
 
   if (!token) {
+    console.error('requireAuth: kein Bearer-Token im Authorization-Header')
     return c.json({ error: 'Nicht authentifiziert' }, 401 as any)
   }
 
+  console.log('requireAuth: token received, prefix:', token.slice(0, 20))
   const supabase = getSupabaseAnonClient()
   if (!supabase) {
     console.error('requireAuth: SUPABASE_URL oder SUPABASE_ANON_KEY nicht gesetzt — alle authentifizierten Requests werden mit 401 abgelehnt')
