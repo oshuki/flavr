@@ -114,7 +114,7 @@ app.get('/health', (c) => {
     status: 'ok',
     timestamp: new Date().toISOString(),
     config: {
-      supabaseUrl: !!process.env.SUPABASE_URL,
+      supabaseUrl: process.env.SUPABASE_URL || null,
       supabaseAnonKey: !!process.env.SUPABASE_ANON_KEY,
       supabaseServiceRoleKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
       unsplashAccessKey: !!process.env.UNSPLASH_ACCESS_KEY,
