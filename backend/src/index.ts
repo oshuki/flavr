@@ -80,11 +80,9 @@ async function requireAuth(c: Context<{ Variables: { userId: string } }>, next: 
   const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : ''
 
   if (!token) {
-    console.error('requireAuth: kein Bearer-Token im Authorization-Header')
     return c.json({ error: 'Nicht authentifiziert' }, 401 as any)
   }
 
-  console.log('requireAuth: token received, prefix:', token.slice(0, 20))
   const supabase = getSupabaseAnonClient()
   if (!supabase) {
     console.error('requireAuth: SUPABASE_URL oder SUPABASE_ANON_KEY nicht gesetzt — alle authentifizierten Requests werden mit 401 abgelehnt')
@@ -114,7 +112,7 @@ app.get('/health', (c) => {
     status: 'ok',
     timestamp: new Date().toISOString(),
     config: {
-      supabaseUrl: process.env.SUPABASE_URL || null,
+      supabaseUrl: !!process.env.SUPABASE_URL,
       supabaseAnonKey: !!process.env.SUPABASE_ANON_KEY,
       supabaseServiceRoleKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
       unsplashAccessKey: !!process.env.UNSPLASH_ACCESS_KEY,
